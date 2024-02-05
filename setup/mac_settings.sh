@@ -42,6 +42,15 @@ echo "backing up mac settings to $backup before applying new settings"
 defaults read > "$backup"
 
 # ============================================================================ #
+# Set Dark Theme without requiring restart
+
+# will prompt to allow Terminal to control System Events which is useful to enable anyway for Apple Scripting eg. ../applescript/*.scpt
+osascript -e 'tell app "System Events" to tell appearance preferences to set dark mode to 1'
+
+# toggle between light and dark theme by setting it to the opposite of its current setting
+#osascript -e 'tell app "System Events" to tell appearance preferences to set dark mode to not dark mode'
+
+# ============================================================================ #
 
 # References:
 #
@@ -215,7 +224,11 @@ defaults write com.apple.dock wvous-tr-modifier -int 0
 # ============================================================================ #
 
 # save screenshots to Desktop
-defaults write com.apple.screencapture location -string "${HOME}/Desktop"
+mkdir -p -v ~/Desktop/Screenshots
+# put them under a Screenshots folder, it's cleaner than having them all over your background
+defaults write com.apple.screencapture location -string ~/Desktop/Screenshots
+
+defaults write com.apple.screencapture "show-thumbnail" -bool "true"
 
 # save in PNG format (default, other options: BMP, GIF, JPG, PDF, TIFF)
 defaults write com.apple.screencapture type -string "png"
@@ -233,8 +246,11 @@ defaults write com.apple.screencapture disable-shadow -bool true
 #                                    D o c k
 # ============================================================================ #
 
-# auto-hide dock
+# auto-hide Dock
 defaults write com.apple.dock autohide -bool true
+
+# make Dock appear on all screens - this is important so that cmd-tab window switching appears there too as it follows the Dock screen
+defaults write com.apple.dock appswitcher-all-displays -bool true
 
 # hide non-active apps
 # XXX: careful this wipes out your Dock and reversing it to false doesn't restore your Dock items
@@ -270,6 +286,10 @@ defaults write com.apple.dock no-bouncing -bool true
 
 # don't minimize to applications, it's more obvious when they're on the far right
 defaults write com.apple.dock minimize-to-application -bool false
+
+# don't leave closed apps in the dock
+defaults write com.apple.dock show-recents -bool no
+defaults write com.apple.dock recent-apps -array # intentionally empty
 
 #killall Dock
 

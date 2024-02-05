@@ -730,6 +730,9 @@ seconds_to_hours(){
 warn(){
     timestamp "WARNING: $*"
 }
+warning(){
+    warn "$@"
+}
 
 log(){
     if is_verbose; then
@@ -1199,6 +1202,8 @@ parse_export_key_value(){
 #                                   JSON utils
 # ============================================================================ #
 
+# extremely poor performance on large 3MB json string from https://updates.jenkins.io/current/update-center.actual.json
+# seems to hang, not sure why yet, avoid and use a simpler test in that case
 is_blank(){
     local arg="${*:-}"
     arg="${arg##[[:space:]]}"
