@@ -158,7 +158,8 @@ Heavily used in many [GitHub repos](https://github.com/search?o=desc&q=user%3Aha
 [Docker-Compose](https://docs.docker.com/compose/),
 [jq](https://stedolan.github.io/jq/)
 and many others... extensive package lists for servers and desktops for most major Linux distributions package managers and Mac
-  - `setup/` - contains even more scripts to download and install software, JDBC connectors, Mac OS X settings etc.
+  - `install/ - contains installation scripts for various software
+  - `setup/` - contains even more setup scripts and config, package lists, Mac OS X settings etc.
 - Utility Libraries used by many hundreds of scripts and [builds](https://harisekhon.github.io/CI-CD/) across [repos](https://github.com/search?o=desc&q=user%3Aharisekhon+type%3Arepository&type=Repositories):
   - `.bash.d/` - interactive library
   - `lib/` - scripting and CI library
@@ -262,7 +263,7 @@ environment,
 CI detection ([Travis CI](https://travis-ci.org/), [Jenkins](https://jenkins.io/) etc),
 port and HTTP url availability content checks etc.
 Sourced from all my other [GitHub repos](https://github.com/harisekhon) to make setting up Dockerized tests easier.
-- `setup/install_*.sh` - various simple to use installation scripts for common technologies like
+- `install/install_*.sh` - various simple to use installation scripts for common technologies like
 [AWS CLI](https://aws.amazon.com/cli/),
 [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/?view=azure-cli-latest),
 [GCloud SDK](https://cloud.google.com/sdk),
@@ -687,8 +688,9 @@ etc.
   - `git_merge_all.sh` / `git_merge_master.sh` / `git_merge_master_pull.sh` - merges updates from master branch to all other branches to avoid drift on longer lived feature branches / version branches (eg. [Dockerfiles](https://github.com/HariSekhon/Dockerfiles) repo)
   - `git_remotes_add_origin_providers.sh` - auto-creates remotes for the 4 major public repositories ([GitHub](https://github.com/)/[GitLab](https://gitlab.com/)/[Bitbucket](https://bitbucket.org)/[Azure DevOps](https://dev.azure.com/)), useful for `git pull -all` to fetch and merge updates from all providers in one command
   - `git_remotes_set_multi_origin.sh` - sets up multi-remote origin for unified push to automatically keep the 4 major public repositories in sync (especially useful for [Bitbucket](https://bitbucket.org) and [Azure DevOps](https://dev.azure.com/) which don't have [GitLab](https://gitlab.com/)'s auto-mirroring from [GitHub](https://github.com/) feature)
-  - `git_remotes_set_ssh_to_https.sh` - converts local repo's remote URLs from ssh to https (to get through corporate firewalls), auto-loads http auth tokens if found in environment variables
-  - `git_remotes_set_https_to_ssh.sh` - converts local repo's remote URLs from https to ssh (more convenient with SSH keys instead of http auth tokens)
+  - `git_remotes_set_https_to_ssh.sh` - converts local repo's remote URLs from https to ssh (more convenient with SSH keys instead of https auth tokens, especially since Azure DevOps expires personal access tokens every year)
+  - `git_remotes_set_ssh_to_https.sh` - converts local repo's remote URLs from ssh to https (to get through corporate firewalls or hotels if you travel a lot)
+  - `git_remotes_set_https_creds_helpers.sh` - adds Git credential helpers configuration to the local git repo to use http API tokens dynamically from environment variables if they're set
   - `git_repos_pull.sh` - pull multiple repos based on a source file mapping list - useful for easily sync'ing lots of Git repos among computers
   - `git_repos_update.sh` - same as above but also runs the `make update` build to install the latest dependencies, leverages the above script
   - `git_grep_env_vars.sh` - find environment variables in the current git repo's code base in the format `SOME_VAR` (useful to find undocumented environment variables in internal or open source projects such as ArgoCD eg. https://github.com/argoproj/argo-cd/pull/8680)
@@ -882,6 +884,7 @@ etc.
     - `jenkins_cred_set_user_pass.sh` - creates or updates a Jenkins username/password credential
   - `jenkins_cli.sh` - shortens `jenkins-cli.jar` command by auto-inferring basic configuations, auto-downloading the CLI if absent, inferrings a bunch of Jenkins related variables like `$JENKINS_URL`, `$JENKINS_CLI_ARGS` and authentication using `$JENKINS_USER`/`$JENKINS_PASSWORD`, or finds admin password from inside local docker container. Used heavily by `jenkins.sh` one-shot setup and the following scripts:
     - `jenkins_foreach_job_cli.sh` - runs a templated command for each Jenkins job
+    - `jenkins_create_parallel_test_job_runs.sh` - creates a freestyle parameterized test sleep job and launches N parallel runs of it to test scaling and parallelization of [Jenkins on Kubernetes](https://github.com/HariSekhon/Kubernetes-configs#jenkins-on-kubernetes) agents
     - `jenkins_jobs_download_configs_cli.sh` - downloads all Jenkins job configs to xml files of the same name
     - `jenkins_cred_cli_add_cert.sh` - creates a Jenkins certificate credential from a PKCS#12 keystore
     - `jenkins_cred_cli_add_kubernetes_sa.sh` - creates a Jenkins Kubernetes service account credential
@@ -1030,7 +1033,7 @@ etc.
 `bin/`, `pingdom/`, `terraform/` directories:
 
 - `digital_ocean_api.sh` / `doapi.sh` - queries the [Digital Ocean](https://www.digitalocean.com/) API with authentication
-  - see also the Digital Ocean CLI `doctl` (`setup/install_doctl.sh`)
+  - see also the Digital Ocean CLI `doctl` (`install/install_doctl.sh`)
 - `atlassian_ip_ranges.sh` - lists [Atlassian](https://www.atlassian.com/)'s IPv4 and/or IPv6 cidr ranges via its API
 - `circleci_public_ips.sh` - lists [CircleCI](https://circleci.com) public IP addresses via dnsjson.com
 - `cloudflare_*.sh` - [Cloudflare](https://www.cloudflare.com/) API queries and reports:
@@ -1164,13 +1167,13 @@ etc.
 
 #### More Linux & Mac
 
-`bin/`, `setup/` and `packages/` directories:
+`bin/`, `install/`, `packages/`, `setup/` directories:
 
 - [Linux](https://en.wikipedia.org/wiki/Linux) / [Mac](https://en.wikipedia.org/wiki/MacOS) systems administration scripts:
-  - installation scripts for various OS packages (RPM, Deb, Apk) for various Linux distros ([Redhat RHEL](https://www.redhat.com/en/technologies/linux-platforms/enterprise-linux) / [CentOS](https://www.centos.org/) / [Fedora](https://getfedora.org/), [Debian](https://www.debian.org/) / [Ubuntu](https://ubuntu.com/), [Alpine](https://alpinelinux.org/))
+  - `install/` - installation scripts for various OS packages (RPM, Deb, Apk) for various Linux distros ([Redhat RHEL](https://www.redhat.com/en/technologies/linux-platforms/enterprise-linux) / [CentOS](https://www.centos.org/) / [Fedora](https://getfedora.org/), [Debian](https://www.debian.org/) / [Ubuntu](https://ubuntu.com/), [Alpine](https://alpinelinux.org/))
   - install if absent scripts for Python, Perl, Ruby, NodeJS and Golang packages - good for minimizing the number of source code installs by first running the OS install scripts and then only building modules which aren't already detected as installed (provided by system packages), speeding up builds and reducing the likelihood of compile failures
-  - install scripts for [Jython](https://www.jython.org/) and build tools like [Gradle](https://gradle.org/) and [SBT](https://www.scala-sbt.org/) for when Linux distros don't provide packaged versions or where the packaged versions are too old
-  - OS / Distro Package Management:
+  - install scripts for tarballs, Golang binaries, random 3rd party installers, [Jython](https://www.jython.org/) and build tools like [Gradle](https://gradle.org/) and [SBT](https://www.scala-sbt.org/) for when Linux distros don't provide packaged versions or where the packaged versions are too old
+  - `packages/` - OS / Distro Package Management:
     - `install_packages.sh` - installs package lists from arguments, files or stdin on major linux distros and Mac, detecting the package manager and invoking the right install commands, with `sudo` if not root. Works on [RHEL](https://www.redhat.com/en) / [CentOS](https://www.centos.org/) / [Fedora](https://getfedora.org/), [Debian](https://www.debian.org/) / [Ubuntu](https://ubuntu.com/), [Alpine](https://alpinelinux.org/), and [Mac Homebrew](https://brew.sh/). Leverages and supports all features of the distro / OS specific install scripts listed below
     - `install_packages_if_absent.sh` - installs package lists if they're not already installed, saving time and minimizing install logs / CI logs, same support list as above
     - Redhat RHEL / CentOS:
