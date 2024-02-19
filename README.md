@@ -2,7 +2,7 @@
 
 [![GitHub stars](https://img.shields.io/github/stars/harisekhon/devops-bash-tools?logo=github)](https://github.com/HariSekhon/DevOps-Bash-tools/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/harisekhon/devops-bash-tools?logo=github)](https://github.com/HariSekhon/DevOps-Bash-tools/network)
-[![Lines of Code](https://img.shields.io/badge/lines%20of%20code-93k-lightgrey?logo=codecademy)](https://github.com/HariSekhon/DevOps-Bash-tools#hari-sekhon---devops-bash-tools)
+[![Lines of Code](https://img.shields.io/badge/lines%20of%20code-96k-lightgrey?logo=codecademy)](https://github.com/HariSekhon/DevOps-Bash-tools#hari-sekhon---devops-bash-tools)
 [![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/HariSekhon/DevOps-Bash-tools/blob/master/LICENSE)
 [![My LinkedIn](https://img.shields.io/badge/LinkedIn%20Profile-HariSekhon-blue?logo=linkedin)](https://www.linkedin.com/in/HariSekhon/)
 [![GitHub Last Commit](https://img.shields.io/github/last-commit/HariSekhon/DevOps-Bash-tools?logo=github)](https://github.com/HariSekhon/DevOps-Bash-tools/commits/master)
@@ -158,7 +158,7 @@ Heavily used in many [GitHub repos](https://github.com/search?o=desc&q=user%3Aha
 [Docker-Compose](https://docs.docker.com/compose/),
 [jq](https://stedolan.github.io/jq/)
 and many others... extensive package lists for servers and desktops for most major Linux distributions package managers and Mac
-  - `install/ - contains installation scripts for various software
+  - `install/` - contains installation scripts for various software
   - `setup/` - contains even more setup scripts and config, package lists, Mac OS X settings etc.
 - Utility Libraries used by many hundreds of scripts and [builds](https://harisekhon.github.io/CI-CD/) across [repos](https://github.com/search?o=desc&q=user%3Aharisekhon+type%3Arepository&type=Repositories):
   - `.bash.d/` - interactive library
@@ -294,6 +294,7 @@ etc.
 - `find_broken_symlinks.sh` - find broken symlinks pointing to non-existent files/directories
 - `http_duplicate_urls.sh` - find duplicate URLs in a given web page
 - `jvm_heaps*.sh` - show all your Java heap sizes for all running Java processes, and their total MB (for performance tuning and sizing)
+- `mac_diff_settings.sh` - takes before and after snapshots of UI setting changes and diffs them to make it easy to find `defaults` keys to add to `setup/mac_settings.sh` to save settings
 - `random_select.sh` - selects one of given args at random. Useful for sampling, running randomized subsets of large test suites etc.
 - `shred_file.sh` - overwrites a file 7 times to DoD standards before deleting it to prevent recovery of sensitive information
 - `shred_free_space.sh` - overwrites free space to prevent recovery of sensitive information for files that have already been deleted
@@ -483,6 +484,7 @@ etc.
     - `gcp_ci_build.sh` - script template for CI/CD to trigger Google Cloud Build to build docker container image with extra datetime and latest tagging
     - `gcp_ci_deploy_k8s.sh` - script template for CI/CD to deploy GCR docker image to GKE Kubernetes using Kustomize
   - `gce_*.sh` - [Google Compute Engine](https://cloud.google.com/compute/) scripts:
+    - `gce_ssh.sh` - Runs `gcloud compute ssh` to a VM while auto-determining its zone first to override any inherited zone config and make it easier to script iterating through VMs
     - `gce_meta.sh` - simple script to query the GCE metadata API from within Virtual Machines
     - `gce_when_preempted.sh` - GCE VM preemption latch script - can be executed any time to set one or more commands to execute upon preemption
     - `gce_is_preempted.sh` - GCE VM return true/false if preempted, callable from other scripts
@@ -531,6 +533,8 @@ etc.
       - `gcp_iam_serviceaccounts_without_permissions.sh` - finds service accounts without IAM permissionns, useful to detect obsolete service accounts after a 90 day unused permissions clean out
       - `gcp_iam_workload_identities.sh` - lists GKE Workload Identity integrations, uses `gcp_iam_serviceaccount_members.sh`
       - `gcp_iam_users_granted_directly.sh` - lists GCP IAM users which have been granted roles directly in violation of best-practice group-based management
+  - `gcs_bucket_project.sh` - finds the GCP project that a given bucket belongs to using the GCP Storage API
+  - `gcs_curl_file.sh` - retrieves a GCS file's contents from a given bucket and path using the GCP Storage API. Useful for starting shell pipelines or being called from other scripts
 
 #### Kubernetes
 
@@ -605,6 +609,7 @@ etc.
   - `kubectl_curl.sh`
   - `kubectl_dnsutils.sh`
   - `kubectl_gcloud_sdk.sh`
+  - `kubectl_run_sa.sh` - launch a quick pod with the given service account to test private repo pull & other permissions
 - `helm_template.sh` - templates a Helm chart for Kustomize deployments
 - `kustomize_parse_helm_charts.sh` - parses the [Helm](https://helm.sh/) charts from one or more `kustomization.yaml` files into TSV format for further shell pipe processing
 - `kustomize_install_helm_charts.sh` - installs the [Helm](https://helm.sh/) charts from one or more `kustomization.yaml` files the old fashioned Helm CLI way so that tools like [Nova](https://github.com/FairwindsOps/nova) can be used to detect outdated charts (used in [Kubernetes-configs](https://github.com/HariSekhon/Kubernetes-configs) repo's [CI](https://github.com/HariSekhon/Kubernetes-configs/actions/workflows/nova.yaml))
@@ -715,7 +720,7 @@ etc.
   - `github_pull_request_create.sh` - creates a Pull Request idempotently by first checking for an existing PR between the branches, and also checking if there are the necessary commits between the branches, to avoid common errors from blindly raising PRs. Useful to automate code promotion across environment branches. Also works across repo forks and is used by `github_repo_fork_update.sh`. Even populates github pull request template and does Jira ticket number replacement from branch prefix
   - `github_pull_request_preview.sh` - opens a GitHub Pull Request preview page from the current local branch to the given or default branch
   - `github_push_pr_preview.sh` - pushes to GitHub origin, sets upstream branch, then open a Pull Request preview from current branch to the given or default trunk branch in your browser
-  - `github_push_pr.sh` - pushes to Gitub origin, sets upstream branch, then idemopotently creates a Pull Request from current branch to the given or default trunk branch and opens the generated PR in your browser for review
+  - `github_push_pr.sh` - pushes to GitHub origin, sets upstream branch, then idemopotently creates a Pull Request from current branch to the given or default trunk branch and opens the generated PR in your browser for review
   - `github_merge_branch.sh` - merges one branch into another branch via a Pull Request for full audit tracking all changes. Useful to automate feature PRs, code promotion across environment branches, or backport hotfixes from Production or Staging to trunk branches such as master, main, dev or develop
   - `github_actions_foreach_workflow.sh` - executes a templated command for each workflow in a given GitHub repo, replacing `{name}`, `{id}` and `{state}` in each iteration
   - `github_actions_aws_create_load_credential.sh` - creates an AWS user with group/policy, generates and downloads access keys, and uploads them to the given repo
@@ -776,7 +781,8 @@ etc.
 - `gitlab/*.sh` - [GitLab](https://gitlab.com/) API scripts:
   - `gitlab_api.sh` - queries the GitLab [API](https://docs.gitlab.com/ee/api/api_resources.html). Can infer GitLab user, repo and authentication token from local checkout or environment (`$GITLAB_USER`, `$GITLAB_TOKEN`)
   - `gitlab_install_binary.sh` - installs a binary from GitLab releases into $HOME/bin or /usr/local/bin. Auto-determines the latest release if no version specified, detects and unpacks any tarball or zip files
-  - `gitlab_push_pr_preview.sh` - pushes to GitLab origin, sets upstream branch, then open a Pull Request preview from current to default branch
+  - `gitlab_push_mr_preview.sh` - pushes to GitLab origin, sets upstream branch, then open a Merge Request preview from current to default branch
+  - `github_push_mr.sh` - pushes to GitLab origin, sets upstream branch, then idemopotently creates a Merge Request from current branch to the given or default trunk branch and opens the generated MR in your browser for review
   - `gitlab_foreach_repo.sh` - executes a templated command for each GitLab project/repo, replacing the `{user}` and `{project}` in each iteration
   - `gitlab_project_latest_release.sh` - returns the latest release tag for a given GitLab project (repo) via the GitLab API
   - `gitlab_project_set_description.sh` - sets the description for one or more projects using the GitLab API
@@ -884,7 +890,8 @@ etc.
     - `jenkins_cred_set_user_pass.sh` - creates or updates a Jenkins username/password credential
   - `jenkins_cli.sh` - shortens `jenkins-cli.jar` command by auto-inferring basic configuations, auto-downloading the CLI if absent, inferrings a bunch of Jenkins related variables like `$JENKINS_URL`, `$JENKINS_CLI_ARGS` and authentication using `$JENKINS_USER`/`$JENKINS_PASSWORD`, or finds admin password from inside local docker container. Used heavily by `jenkins.sh` one-shot setup and the following scripts:
     - `jenkins_foreach_job_cli.sh` - runs a templated command for each Jenkins job
-    - `jenkins_create_parallel_test_job_runs.sh` - creates a freestyle parameterized test sleep job and launches N parallel runs of it to test scaling and parallelization of [Jenkins on Kubernetes](https://github.com/HariSekhon/Kubernetes-configs#jenkins-on-kubernetes) agents
+    - `jenkins_create_job_parallel_test_runs.sh` - creates a freestyle parameterized test sleep job and launches N parallel runs of it to test scaling and parallelization of [Jenkins on Kubernetes](https://github.com/HariSekhon/Kubernetes-configs#jenkins-on-kubernetes) agents
+    - `jenkins_create_job_check_gcp_serviceaccount.sh` - creates a freestyle test job which runs a GCP Metadata query to determine the GCP serviceaccount the agent pod is operating under to check GKE Workload Identity integration
     - `jenkins_jobs_download_configs_cli.sh` - downloads all Jenkins job configs to xml files of the same name
     - `jenkins_cred_cli_add_cert.sh` - creates a Jenkins certificate credential from a PKCS#12 keystore
     - `jenkins_cred_cli_add_kubernetes_sa.sh` - creates a Jenkins Kubernetes service account credential
@@ -1002,6 +1009,8 @@ etc.
   - `terraform_cloud_varset_set_vars.sh` - adds / updates Terraform sensitive environment/terraform variable(s) in a given variable set via the API from `key=value` or shell export format, as args or via stdin (eg. piped from `aws_csv_creds.sh`)
   - `terraform_cloud_varset_delete_vars.sh` - deletes one or more Terraform variables in a given variable set
 - `terraform_*.sh` - [Terraform](https://www.terraform.io/) scripts:
+  - `terraform_gcs_backend_version.sh` - determines the Terraform state version from the tfstate file in a GCS bucket found in a local given `backend.tf`
+  - `terraform_gitlab_download_backend_variable.sh` - downloads backend.tf from a GitLab CI/CD variable to be able to quickly iterate plans locally
   - `terraform_import.sh` - finds given resource type in `./*.tf` code or Terraform plan output that are not in Terraform state and imports them
   - `terraform_import_aws_iam_users.sh` - parses Terraform plan output to import new `aws_iam_user` additions into Terraform state
   - `terraform_import_aws_iam_groups.sh` - parses Terraform plan output to import new `aws_iam_group` additions into Terraform state
@@ -1042,6 +1051,10 @@ etc.
   - `cloudflare_custom_certificates.sh` - lists any custom SSL certificates in a given Cloudflare zone along with their status and expiry date
   - `cloudflare_dns_records.sh` - lists any Cloudflare DNS records for a zone, including the type and ttl
   - `cloudflare_dns_records_all_zones.sh` - same as above but for all zones
+  - `cloudflare_dns_record_create.sh` - creates a DNS record in the given domain
+  - `cloudflare_dns_record_update.sh` - updates a DNS record in the given domain
+  - `cloudflare_dns_record_delete.sh` - deletes a DNS record in the given domain
+  - `cloudflare_dns_record_details.sh` - lists the details for a DNS record in the given domain in JSON format for further pipe processing
   - `cloudflare_dnssec.sh` - lists the Cloudflare DNSSec status for all zones
   - `cloudflare_firewall_rules.sh` - lists Cloudflare Firewall rules, optionally with filter expression
   - `cloudflare_firewall_access_rules.sh` - lists Cloudflare Firewall Access rules, optionally with filter expression

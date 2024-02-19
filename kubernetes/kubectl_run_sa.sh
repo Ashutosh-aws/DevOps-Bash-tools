@@ -2,7 +2,7 @@
 #  vim:ts=4:sts=4:sw=4:et
 #
 #  Author: Hari Sekhon
-#  Date: 2021-03-04 16:00:54 +0000 (Thu, 04 Mar 2021)
+#  Date: 2020-08-28 15:04:50 +0100 (Fri, 28 Aug 2020)
 #
 #  https://github.com/HariSekhon/DevOps-Bash-tools
 #
@@ -20,23 +20,33 @@ srcdir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1090,SC1091
 . "$srcdir/lib/utils.sh"
 
+# shellcheck disable=SC1090,SC1091
+. "$srcdir/lib/kubernetes.sh"
+
 # shellcheck disable=SC2034,SC2154
 usage_description="
-Lists Cloudflare Zone names and IDs (needed for Terraform)
+Runs a quick pod on Kubernetes with the given serviceaccount to test private repo pull & other permissions
 
-Output:
+Shares the same pod for successive invocations of this script for speed
 
-<id>    <name>
-
-Uses cloudflare_api.sh - see there for authentication API key details
-Used by cloudflare_dns_record_*.sh
+Arguments become options to 'kubectl run'
 "
 
 # used by usage() in lib/utils.sh
 # shellcheck disable=SC2034
-usage_args=""
+usage_args="<serviceaccount> [<image> <kubectl_options>]"
 
 help_usage "$@"
 
-"$srcdir/cloudflare_api.sh" /zones |
-jq -r '.result[] | [.id, .name] | @tsv'
+min_args 1 "$@"
+
+service_account="$1"
+image="${2:-busybox}"
+shift || :
+shift || :
+
+name="${image##*/}"
+name="${name%%:*}"
+name+="-${USER:-$(whoami)}"
+
+run_static_pod "$name" "$image" --overrides="{ \"spec\": { \"serviceAccount\": \"$service_account\" }  }" "$@"
