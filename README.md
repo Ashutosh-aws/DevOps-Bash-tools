@@ -158,8 +158,8 @@ Heavily used in many [GitHub repos](https://github.com/search?o=desc&q=user%3Aha
 [Docker-Compose](https://docs.docker.com/compose/),
 [jq](https://stedolan.github.io/jq/)
 and many others... extensive package lists for servers and desktops for most major Linux distributions package managers and Mac
-  - `install/` - contains installation scripts for various software
-  - `setup/` - contains even more setup scripts and config, package lists, Mac OS X settings etc.
+  - `install/` - contains many installation scripts for popular open source software and direct binary downloads from GitHub releases
+  - `setup/` - contains setup scripts, package lists, extra configs, Mac OS X settings etc.
 - Utility Libraries used by many hundreds of scripts and [builds](https://harisekhon.github.io/CI-CD/) across [repos](https://github.com/search?o=desc&q=user%3Aharisekhon+type%3Arepository&type=Repositories):
   - `.bash.d/` - interactive library
   - `lib/` - scripting and CI library
@@ -427,6 +427,7 @@ etc.
   - `.envrc-gcp` - copy to `.envrc` for [direnv](https://direnv.net/) to auto-load GCP configuration settings such as Project, Region, Zone, GKE cluster kubectl context or any other GCloud SDK settings to shorten `gcloud` commands. Applies to the local shell environment only to avoid race conditions caused by naively changing the global gcloud config at `~/.config/gcloud/active_config`
     - calls `.envrc-kubernetes` to set the `kubectl` context isolated to current shell to prevent race conditions between shells and scripts caused by otherwise naively changing the global `~/.kube/config` context
   - `gcp_terraform_create_credential.sh` - creates a service account for [Terraform](https://www.terraform.io/) with full permissions, creates and downloads a credential key json and even prints the `export GOOGLE_CREDENTIALS` command to configure your environment to start using Terraform immediately. Run once for each project and combine with [direnv](https://direnv.net/) for fast easy management of multiple GCP projects
+  - `gcp_ansible_create_credential.sh` - creates an [Ansible](https://www.ansible.com/) service account with permissions on the current project, creates and downloads a credential key json and prints the environment variable to immediately use it
   - `gcp_cli_create_credential.sh` - creates a GCloud SDK CLI service account with full owner permissions to all projects, creates and downloads a credential key json and even prints the `export GOOGLE_CREDENTIALS` command to configure your environment to start using it. Avoids having to reauth to `gcloud auth login` every day.
   - `gcp_spinnaker_create_credential.sh` - creates a [Spinnaker](https://spinnaker.io/) service account with permissions on the current project, creates and downloads a credential key json and even prints the Halyard CLI configuration commands to use it
   - `gcp_info.sh` - huge [Google Cloud](https://cloud.google.com/) inventory of deployed resources within the current project - Cloud SDK info plus all of the following (detects which services are enabled to query):
@@ -484,6 +485,7 @@ etc.
     - `gcp_ci_build.sh` - script template for CI/CD to trigger Google Cloud Build to build docker container image with extra datetime and latest tagging
     - `gcp_ci_deploy_k8s.sh` - script template for CI/CD to deploy GCR docker image to GKE Kubernetes using Kustomize
   - `gce_*.sh` - [Google Compute Engine](https://cloud.google.com/compute/) scripts:
+    - `gce_foreach_vm.sh` - run a command for each GCP VM instance matching the given name/ip regex in the current GCP project
     - `gce_ssh.sh` - Runs `gcloud compute ssh` to a VM while auto-determining its zone first to override any inherited zone config and make it easier to script iterating through VMs
     - `gce_meta.sh` - simple script to query the GCE metadata API from within Virtual Machines
     - `gce_when_preempted.sh` - GCE VM preemption latch script - can be executed any time to set one or more commands to execute upon preemption
@@ -867,6 +869,8 @@ etc.
     - `jenkins_job_disable.sh` - disables a Jenkins job by name
     - `jenkins_job_trigger.sh` - triggers a Jenkins job by name
     - `jenkins_job_trigger_with_params.sh` - triggers a Jenkins job with parameters which can be passed as `--data KEY=VALUE`
+    - `jenkins_jobs_enable.sh` - enables all Jenkins jobs/pipelines with names matching a given regex
+    - `jenkins_jobs_disable.sh` - disables all Jenkins jobs/pipelines with names matching a given regex
     - `jenkins_builds.sh` - lists Jenkins latest builds for every job
     - `jenkins_cred_add_cert.sh` - creates a Jenkins certificate credential from a PKCS#12 keystore
     - `jenkins_cred_add_kubernetes_sa.sh` - creates a Jenkins Kubernetes service account credential

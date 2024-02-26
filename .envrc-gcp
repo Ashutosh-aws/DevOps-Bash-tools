@@ -78,7 +78,19 @@ export CLOUDSDK_CORE_PROJECT=myproject
 export REGION=europe-west2
 
 export CLOUDSDK_COMPUTE_REGION="$REGION"
-export CLOUDSDK_COMPUTE_ZONE="${REGION}-a" # or b or c
+
+# you should probably not set CLOUDSDK_COMPUTE_ZONE
+#
+# 'gcloud compute ssh' will auto-determine the zone
+#
+# setting CLOUDSDK_COMPUTE_ZONE explicitly breaks the above command in 2/3 cases due to a VM being in a different zone:
+#
+#    ERROR: (gcloud.compute.ssh) Could not fetch resource:
+#     - The resource 'projects/<MY_PROJECT>/zones/<ZONE>/instances/<VM_NAME>' was not found
+#
+# gcp/gce_ssh.sh script in this repo can work around that if you do set this
+#
+#export CLOUDSDK_COMPUTE_ZONE="${REGION}-a" # or b or c
 
 export CLOUDSDK_AI_REGION="$REGION"
 export CLOUDSDK_AI_PLATFORM_REGION="$REGION"
@@ -126,3 +138,9 @@ if [ -n "${CLOUDSDK_CONTAINER_CLUSTER:-}" ]; then
     # shellcheck disable=SC1090,SC1091
     . "$srcdir/.envrc-kubernetes" "$GKE_CONTEXT"
 fi
+
+# pull the secret using this command whenever you need it:
+#
+#   gcp_secret_get.sh "$JENKINS_ADMIN_PASSWORD_GCP_SECRET" | copy_to_clipboard.sh
+#
+export JENKINS_ADMIN_PASSWORD_GCP_SECRET="jenkins-admin-password"

@@ -2,7 +2,7 @@
 #  vim:ts=4:sts=4:sw=4:et
 #
 #  Author: Hari Sekhon
-#  Date: 2022-06-28 18:34:34 +0100 (Tue, 28 Jun 2022)
+#  Date: 2024-02-25 23:53:53 +0000 (Sun, 25 Feb 2024)
 #
 #  https://github.com/HariSekhon/DevOps-Bash-tools
 #
@@ -13,8 +13,6 @@
 #  https://www.linkedin.com/in/HariSekhon
 #
 
-# https://wiki.jenkins-ci.org/display/JENKINS/Remote+access+API
-
 set -euo pipefail
 [ -n "${DEBUG:-}" ] && set -x
 srcdir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -24,23 +22,29 @@ srcdir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # shellcheck disable=SC2034,SC2154
 usage_description="
-Enables a Jenkins job/pipeline via the Jenkins API
+Checks if a given Solr collection exists via the Solr API
 
-Tested on Jenkins 2.319
+Uses the adjacent script solr_api.sh - see it for required environment variables and authentication
 
-Uses the adjacent jenkins_api.sh - see there for authentication details
+See Also
+
+    Solr CLI - https://github.com/HariSekhon/DevOps-Perl-tools
 "
 
 # used by usage() in lib/utils.sh
 # shellcheck disable=SC2034
-usage_args="<job_name> [<curl_options>]"
+usage_args="<collection_name> [<curl_options>]"
 
 help_usage "$@"
 
 min_args 1 "$@"
 
-job="$1"
+collection="$1"
 shift || :
 
-timestamp "Enabling Jenkins job '$job'"
-"$srcdir/jenkins_api.sh" "/job/$job/enable" -X POST "$@"
+if "$srcdir/solr_api.sh" "/solr/admin/collections?action=LIST" | jq -r '.collections[]' | grep -Fxq "$collection"; then
+    timestamp "Solr collection '$collection' exists"
+else
+    timestamp "Solr collection '$collection' does not exist"
+    exit 1
+fi
