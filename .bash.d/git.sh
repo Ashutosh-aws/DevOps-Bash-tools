@@ -635,9 +635,11 @@ gitu(){
         basedir="$(basedir "$filename")" || return 1
         pushd "$basedir" >/dev/null || return 1
         # XXX: needs -s to return the basename and not the full name
-        changed_files="$(git status --porcelain -s "${filename##*/}" |
-                 grep -e '^M' -e '^.M' |
-                 sed 's/^...//')"
+        changed_files="$(
+            git status --porcelain -s "${filename##*/}" |
+            grep -e '^M' -e '^.M' |
+            sed 's/^...//'
+        )"
         # while read line would auto-accepting the readline and commit without prompt :-/
         for changed_filename in $changed_files; do
             basename="${changed_filename##*/}"
@@ -739,6 +741,8 @@ push(){
         # exposes your Github / GitLab / Bitbucket tokens on the screen, not secure, use printing above instead
         #git push -v "$@"
         git push "$@"
+        echo
+        st
     elif type isHg &>/dev/null && isHg .; then
         echo "> hg push $*"
         hg push "$@"

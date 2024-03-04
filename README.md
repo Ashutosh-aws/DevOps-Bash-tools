@@ -286,6 +286,11 @@ Sourced from all my other [GitHub repos](https://github.com/harisekhon) to make 
 etc.
 - `login.sh` - logs to major Cloud platforms if their credentials are found in the environment, CLIs such as AWS, GCP, Azure, GitHub... Docker registries: DockerHub, GHCR, ECR, GCR, GAR, ACR, Gitlab, Quay...
 - `clean_caches.sh` - cleans out OS package and programming language caches - useful to save space or reduce Docker image size
+- `delete_duplicate_files.sh` - deletes duplicate files with (N) suffixes, commonly caused by web browser downloads,
+  in the given or current directory. Checks they're exact duplicates of a matching basename file without the (N) suffix with
+  the exact same checksum for safety. Prompts to delete per file. To auto-accept deletions, do
+  `yes | delete_duplicate_files.sh`. This is a fast way of cleaning up your `~/Downloads` directory and can be put your
+  user crontab
 - `curl_auth.sh` - shortens `curl` command by auto-loading your OAuth2 / JWT API token or username & password from environment variables or interactive starred password prompt through a ram file descriptor to avoid placing them on the command line (which would expose your credentials in the process list or OS audit log files). Used by many other adjacent API querying scripts
 - `ldapsearch.sh` - shortens `ldapsearch` command by inferring switches from environment variables
 - `ldap_user_recurse.sh` / `ldap_group_recurse.sh` - recurse Active Directory LDAP users upwards to find all parent groups, or groups downwards to find all nested users (useful for debugging LDAP integration and group-based permissions)
@@ -295,6 +300,9 @@ etc.
 - `http_duplicate_urls.sh` - find duplicate URLs in a given web page
 - `jvm_heaps*.sh` - show all your Java heap sizes for all running Java processes, and their total MB (for performance tuning and sizing)
 - `mac_diff_settings.sh` - takes before and after snapshots of UI setting changes and diffs them to make it easy to find `defaults` keys to add to `setup/mac_settings.sh` to save settings
+- `copy_to_clipboard.sh - copies stdin or string arg to system clipboard on Linux or Mac
+- `paste_from_clipboard.sh` - pastes from system clipboard to stdout on Linux or Mac
+- `paste_diff_settings.sh` - Takes snapshots of before and after clipboard changes and diffs them to show config changes
 - `random_select.sh` - selects one of given args at random. Useful for sampling, running randomized subsets of large test suites etc.
 - `shred_file.sh` - overwrites a file 7 times to DoD standards before deleting it to prevent recovery of sensitive information
 - `shred_free_space.sh` - overwrites free space to prevent recovery of sensitive information for files that have already been deleted
@@ -486,7 +494,9 @@ etc.
     - `gcp_ci_deploy_k8s.sh` - script template for CI/CD to deploy GCR docker image to GKE Kubernetes using Kustomize
   - `gce_*.sh` - [Google Compute Engine](https://cloud.google.com/compute/) scripts:
     - `gce_foreach_vm.sh` - run a command for each GCP VM instance matching the given name/ip regex in the current GCP project
+    - `gce_host_ips.sh` - prints the IPs and hostnames of all or a regex match of GCE VMs for use in /etc/hosts
     - `gce_ssh.sh` - Runs `gcloud compute ssh` to a VM while auto-determining its zone first to override any inherited zone config and make it easier to script iterating through VMs
+    - `gcs_ssh_keyscan.sh` - SSH keyscans all the GCE VMs returned from the above `gce_host_ips.sh` script and adds them to `~/.ssh/known_hosts`
     - `gce_meta.sh` - simple script to query the GCE metadata API from within Virtual Machines
     - `gce_when_preempted.sh` - GCE VM preemption latch script - can be executed any time to set one or more commands to execute upon preemption
     - `gce_is_preempted.sh` - GCE VM return true/false if preempted, callable from other scripts
