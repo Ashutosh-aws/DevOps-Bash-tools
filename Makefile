@@ -89,7 +89,8 @@ build:
 	@echo ================
 	@$(MAKE) git-summary
 	@$(MAKE) init
-	@$(MAKE) system-packages aws github-cli
+	@$(MAKE) system-packages
+	@$(MAKE) aws github-cli
 
 .PHONY: init
 init: git
@@ -98,8 +99,12 @@ init: git
 	@echo
 
 .PHONY: install
-install: build link aws gcp github-cli pip
-	@:
+install: build
+	@$(MAKE) link
+	@$(MAKE) aws
+	@$(MAKE) gcp
+	@$(MAKE) github-cli
+	@$(MAKE) pip
 
 .PHONY: uninstall
 uninstall: unlink
@@ -121,9 +126,17 @@ unlink:
 mac-desktop: desktop
 	@setup/mac_desktop.sh
 
+.PHONY: mac
+mac: mac-desktop
+	@:
+
 .PHONY: linux-desktop
 linux-desktop: desktop
 	@setup/linux_desktop.sh
+
+.PHONY: linux
+linux: linux-desktop
+	@:
 
 .PHONY:
 ccmenu:
@@ -174,6 +187,8 @@ homebrew: system-packages brew
 
 .PHONY: brew
 brew:
+	which -a brew || install/install_homebrew.sh
+	which -a wget || brew install wget
 	NO_FAIL=1 NO_UPDATE=1 $(BASH_TOOLS)/packages/brew_install_packages_if_absent.sh setup/brew-packages-desktop.txt
 	NO_FAIL=1 NO_UPDATE=1 CASK=1 $(BASH_TOOLS)/packages/brew_install_packages_if_absent.sh setup/brew-packages-desktop-casks.txt
 	@# doesn't pass the packages correctly yet
