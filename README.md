@@ -765,6 +765,8 @@ See also [Knowledge Base notes for Hadoop](https://github.com/HariSekhon/Knowled
   - `github_merge_branch.sh` - merges one branch into another branch via a Pull Request for full audit tracking all changes. Useful to automate feature PRs, code promotion across environment branches, or backport hotfixes from Production or Staging to trunk branches such as master, main, dev or develop
   - `github_remote_set_upstream.sh` - in a forked GitHub repo's checkout, determine the origin of the fork using GitHub CLI and configure a git remote to the upstream. Useful to be able to easily pull updates from the original source repo
   - `github_pull_merge_upstream.sh` - in a forked GitHub repo's checkout, determine the origin of the fork using GitHub CLI, configure a git remote to the upstream, pull the default branch and if on a branch other than the default then merge the default branch to the local current branch. Simplifies and automates keeping your personal forked repo up to date with the upstream to resolve merge conflicts locally and submit updated Pull Requests
+  - `github_forked_add_remote.sh` - quickly adds a forked repo as a remote from an interactive men list of forked repos
+  - `github_forked_checkout_branch.sh` - quickly check out a forked repo's branch from an interactive menu lists of forked repos and their branches
   - `github_actions_foreach_workflow.sh` - executes a templated command for each workflow in a given GitHub repo, replacing `{name}`, `{id}` and `{state}` in each iteration
   - `github_actions_aws_create_load_credential.sh` - creates an AWS user with group/policy, generates and downloads access keys, and uploads them to the given repo
   - `github_actions_in_use.sh` - lists GitHub Actions directly referenced in the .github/workflows in the current local repo checkout
@@ -1261,6 +1263,7 @@ See also [Knowledge Base notes for Python](https://github.com/HariSekhon/Knowled
       - `brew_install_packages.sh` / `brew_remove_packages.sh` - installs Mac Hombrew package lists from arguments, files or stdin. Accepts `NO_FAIL=1` env var to ignore unavailable / changed package names (useful for optional packages or attempts for different package names across versions)
       - `brew_install_packages_if_absent.sh` - installs Mac Homebrew packages only if not already installed, saving time and minimizing install logs / CI logs, plus all the features of `brew_install_packages.sh` above
       - `brew_filter_installed.sh` / `brew_filter_not_installed.sh` - pipe filter packages that are / are not installed for easy script piping
+      - `brew_package_owns.sh` - finds which brew package owns a given filename argument
 - all builds across all my GitHub repos now `make system-packages` before `make pip` / `make cpan` to shorten how many packages need installing, reducing chances of build failures
 
 #### Builds, Languages & Linting
