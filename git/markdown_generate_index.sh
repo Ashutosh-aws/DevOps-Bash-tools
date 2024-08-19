@@ -22,25 +22,40 @@ srcdir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # shellcheck disable=SC2034,SC2154
 usage_description="
-Generates a markdown index list from the headings in a given README.md file
+Generates a markdown index list from the headings in a given markdown file such as README.md
 
-If no file is given but one is found in the \$PWD, then uses that
+If no file is given but README.md is found in the \$PWD, then uses that
 "
 
 # used by usage() in lib/utils.sh
 # shellcheck disable=SC2034
-usage_args="<README.md>"
+usage_args="[<README.md>]"
 
 help_usage "$@"
 
 max_args 1 "$@"
 
-readme="${1:-README.md}"
+markdown_file="${1:-README.md}"
 
 indent_width=2
 
+if ! [ -f "$markdown_file" ]; then
+    die "File not found: $markdown_file"
+fi
+
+# since we now strip ```code``` blocks we must ensure that they match otherwise this code cannot
+# reliably run as it'll result in stripping out valid headings
+
+if [ "$(( $(grep -c '^```' "$markdown_file") % 2))" != 0 ]; then
+    die "Error - uneven number of code blocks found in file: $markdown_file"
+fi
+
+# sed strip out ```code``` blocks to avoid # comments inside code blocks from going into the index
 # tail -n +2 takes off the first line which is the header we definitely don't want in the index
-grep '^#' "$readme" |
+# false positive
+# shellcheck disable=SC2016
+sed '/^```/,/^```/d' "$markdown_file" |
+grep -E '^#+[[:space:]]' |
 tail -n +2 |
 # don't include main headings
 #sed '/^#[[:space:]]/d' |

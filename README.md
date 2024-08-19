@@ -73,9 +73,9 @@ awkward URLs more nicely replaced with shields.io
 [![Travis CI](https://img.shields.io/badge/TravisCI-ready-blue?logo=travis&label=Travis%20CI)](https://github.com/HariSekhon/DevOps-Bash-tools/blob/master/travis/.travis.yml)
 [![Reviewed by Hound](https://img.shields.io/badge/Reviewed%20by-Hound-8E64B0.svg)](https://houndci.com)
 
-[![Repo on Azure DevOps](https://img.shields.io/badge/repo-Azure%20DevOps-0078D7?logo=azure%20devops)](https://dev.azure.com/harisekhon/GitHub/_git/DevOps-Bash-tools)
 [![Repo on GitHub](https://img.shields.io/badge/repo-GitHub-2088FF?logo=github)](https://github.com/HariSekhon/DevOps-Bash-tools)
 [![Repo on GitLab](https://img.shields.io/badge/repo-GitLab-FCA121?logo=gitlab)](https://gitlab.com/HariSekhon/DevOps-Bash-tools)
+[![Repo on Azure DevOps](https://img.shields.io/badge/repo-Azure%20DevOps-0078D7?logo=azure%20devops)](https://dev.azure.com/harisekhon/GitHub/_git/DevOps-Bash-tools)
 [![Repo on BitBucket](https://img.shields.io/badge/repo-BitBucket-0052CC?logo=bitbucket)](https://bitbucket.org/HariSekhon/DevOps-Bash-tools)
 
 [![Azure DevOps Pipeline](https://dev.azure.com/harisekhon/GitHub/_apis/build/status/HariSekhon.DevOps-Bash-tools?branchName=master)](https://dev.azure.com/harisekhon/GitHub/_build/latest?definitionId=1&branchName=master)
@@ -159,6 +159,7 @@ Heavily used in many [GitHub repos](https://github.com/search?o=desc&q=user%3Aha
 [jq](https://stedolan.github.io/jq/)
 and many others... extensive package lists for servers and desktops for most major Linux distributions package managers and Mac
   - `install/` - contains many installation scripts for popular open source software and direct binary downloads from GitHub releases
+  - `configs/` - contains many dot configs for common technologies like ViM, top, Screen, Tmux, MySQL, PostgreSQL etc.
   - `setup/` - contains setup scripts, package lists, extra configs, Mac OS X settings etc.
 - Utility Libraries used by many hundreds of scripts and [builds](https://harisekhon.github.io/CI-CD/) across [repos](https://github.com/search?o=desc&q=user%3Aharisekhon+type%3Arepository&type=Repositories):
   - `.bash.d/` - interactive library
@@ -308,6 +309,7 @@ etc.
 - `paste_from_clipboard.sh` - pastes from system clipboard to stdout on Linux or Mac
 - `paste_diff_settings.sh` - Takes snapshots of before and after clipboard changes and diffs them to show config changes
 - `random_select.sh` - selects one of given args at random. Useful for sampling, running randomized subsets of large test suites etc.
+- `shields_embed_logo.sh` - base64 encodes a given icon file or url and prints the `logo=...` url parameter you need to add the [shields.io](https://shields.io/) badge url
 - `shred_file.sh` - overwrites a file 7 times to DoD standards before deleting it to prevent recovery of sensitive information
 - `shred_free_space.sh` - overwrites free space to prevent recovery of sensitive information for files that have already been deleted
 - `split.sh` - split large files into N parts (defaults to the number of your CPU cores) to parallelize operations on them
@@ -589,6 +591,7 @@ See also [Knowledge Base notes for GCP](https://github.com/HariSekhon/Knowledge-
 - `kubectl_create_namespaces.sh` - creates any namespaces in yaml files or stdin, a prerequisite for a diff on a blank install, used by adjacent scripts for safety
 - `kubernetes_check_objects_namespaced.sh` - checks Kubernetes yaml(s) for objects which aren't explicitly namespaced, which can easily result in deployments to the wrong namespace. Reads the API resources from your current Kubernetes cluster and if successful excludes cluster-wide objects
 - `kustomize_check_objects_namespaced.sh` - checks Kustomize build yaml output for objects which aren't explicitly namespaced (uses above script)
+- `kubectl_deployment_pods.sh` - gets the pod names with their unpredictable suffixes for a given deployment by querying the deployment's selector labels and then querying pods that match those labels
 - `kubectl_get_all.sh` - finds all namespaced Kubernetes objects and requests them for the current or given namespace. Useful because `kubectl get all` misses a lof of object types
 - `kubectl_get_annotation.sh` - find a type of object with a given annotation
 - `kubectl_restart.sh` - restarts all or filtered deployments/statefulsets in the current or given namespace. Useful when debugging or clearing application problems
@@ -650,7 +653,8 @@ See also [Knowledge Base notes for GCP](https://github.com/HariSekhon/Knowledge-
   - `argocd_apps_wait_sync.sh` - sync's all [ArgoCD](https://argo-cd.readthedocs.io/en/stable/) apps matching an optional ERE regex filter on their names using the ArgoCD CLI's while also checking their health and operation
   - `argocd_generate_resource_whitelist.sh` - generates a yaml cluster and namespace resource whitelist for ArgoCD project config. If given an existing yaml, will merge in its original whitelists, dedupe, and write them back into the file using an in-place edit. Useful because ArgoCD 2.2+ doesn't show resources that aren't explicitly allowed, such as ReplicaSets and Pods
 - Pluto:
-  - `pluto_detect_kustomize_materialize.sh` - recursively materializes all `kustomization.yaml` as above and runs [Pluto](https://github.com/FairwindsOps/pluto) on each directory to work around [this issue](https://github.com/FairwindsOps/pluto/issues/444)
+  - `pluto_detect_helm_materialize.sh` - recursively materializes all helm `Chart.yaml` and runs [Pluto](https://github.com/FairwindsOps/pluto) on each directory to work around [this issue](https://github.com/FairwindsOps/pluto/issues/444)
+  - `pluto_detect_kustomize_materialize.sh` - recursively materializes all `kustomization.yaml` and runs [Pluto](https://github.com/FairwindsOps/pluto) on each directory to work around [this issue](https://github.com/FairwindsOps/pluto/issues/444)
   - `pluto_detect_kubectl_dump_objects.sh` - dumps all live Kubernetes objects to /tmp all can run [Pluto](https://github.com/FairwindsOps/pluto) to detect deprecated API objects on the cluster from any source
 - Rancher:
   - `rancher_api.sh` - queries the Rancher API with authentication
@@ -728,6 +732,7 @@ See also [Knowledge Base notes for Hadoop](https://github.com/HariSekhon/Knowled
 `git/`, `github/`, `gitlab/`, `bitbucket/` and `azure_devops/` directories:
 
 - `git/*.sh` - [Git](https://git-scm.com/) scripts:
+  - `precommit_run_changed_files.sh` - runs pre-commit on all files changed on the current branch vs the default branch. Useful to reproduce `pre-commit` checks that are failing in pull requests to get your PRs to pass
   - `git_foreach_branch.sh` - executes a command on all branches (useful in heavily version branched repos like in my [Dockerfiles](https://github.com/HariSekhon/Dockerfiles) repo)
   - `git_foreach_repo.sh` - executes a command against all adjacent repos from a given repolist (used heavily by many adjacent scripts)
   - `git_foreach_modified.sh` - executes a command against each file with git modified status
@@ -739,7 +744,7 @@ See also [Knowledge Base notes for Hadoop](https://github.com/HariSekhon/Knowled
   - `git_remotes_set_https_creds_helpers.sh` - adds Git credential helpers configuration to the local git repo to use http API tokens dynamically from environment variables if they're set
   - `git_repos_pull.sh` - pull multiple repos based on a source file mapping list - useful for easily sync'ing lots of Git repos among computers
   - `git_repos_update.sh` - same as above but also runs the `make update` build to install the latest dependencies, leverages the above script
-  - `git_grep_env_vars.sh` - find environment variables in the current git repo's code base in the format `SOME_VAR` (useful to find undocumented environment variables in internal or open source projects such as ArgoCD eg. https://github.com/argoproj/argo-cd/pull/8680)
+  - `git_grep_env_vars.sh` - find environment variables in the current git repo's code base in the format `SOME_VAR` (useful to find undocumented environment variables in internal or open source projects such as ArgoCD eg. [argoproj/argocd-cd #8680](https://github.com/argoproj/argo-cd/pull/8680))
   - `git_log_empty_commits.sh` - find empty commits in git history (eg. if a `git filter-branch` was run but `--prune-empty` was forgotten, leaking metadata like subjects containing file names or other sensitive info)
   - `git_files_in_history.sh` - finds all filename / file paths in the git log history, useful for prepping for `git filter-branch`
   - `git_filter_branch_fix_author.sh` - rewrites Git history to replace author/committer name & email references (useful to replace default account commits). Powerful, read `--help` and `man git-filter-branch` carefully. Should only be used by Git Experts
@@ -747,7 +752,8 @@ See also [Knowledge Base notes for Hadoop](https://github.com/HariSekhon/Knowled
   - `git_tag_release.sh` - creates a Git tag, auto-incrementing a `.N` suffix on the year/month/day date format if no exact version given
   - `git_submodules_update_repos.sh` - updates submodules (pulls and commits latest upstream github repo submodules) - used to cascade submodule updates throughout all my repos
   - `git_askpass.sh` - credential helper script to use environment variables for git authentication
-  - `readme_generate_index.sh` - generates a markdown list for all subtitles found in the given README.md. Useful to quickly regenerate the Index section of a README file
+  - `markdown_generate_index.sh` - generates a markdown index list from the headings in a given markdown file such as README.md
+  - `markdown_replace_index.sh` - replaces a markdown index section in a given markdown file using `markdown_generate_index.sh`
 - `github/*.sh` - [GitHub](https://github.com/) API / CLI scripts:
   - `github_api.sh` - queries the GitHub [API](https://docs.github.com/en/rest/reference). Can infer GitHub user, repo and authentication token from local checkout or environment (`$GITHUB_USER`, `$GITHUB_TOKEN`)
   - `github_install_binary.sh` - installs a binary from GitHub releases into $HOME/bin or /usr/local/bin. Auto-determines the latest release if no version specified, detects and unpacks any tarball or zip files
@@ -764,7 +770,7 @@ See also [Knowledge Base notes for Hadoop](https://github.com/HariSekhon/Knowled
   - `github_push_pr.sh` - pushes to GitHub origin, sets upstream branch, then idemopotently creates a Pull Request from current branch to the given or default trunk branch and opens the generated PR in your browser for review
   - `github_merge_branch.sh` - merges one branch into another branch via a Pull Request for full audit tracking all changes. Useful to automate feature PRs, code promotion across environment branches, or backport hotfixes from Production or Staging to trunk branches such as master, main, dev or develop
   - `github_remote_set_upstream.sh` - in a forked GitHub repo's checkout, determine the origin of the fork using GitHub CLI and configure a git remote to the upstream. Useful to be able to easily pull updates from the original source repo
-  - `github_pull_merge_upstream.sh` - in a forked GitHub repo's checkout, determine the origin of the fork using GitHub CLI, configure a git remote to the upstream, pull the default branch and if on a branch other than the default then merge the default branch to the local current branch. Simplifies and automates keeping your personal forked repo up to date with the upstream to resolve merge conflicts locally and submit updated Pull Requests
+  - `github_pull_merge_trunk.sh` - pulls the origin or fork upstream repo's trunk branch and merges it into the local branch, In a forked GitHub repo's checkout, determines the origin of the fork using GitHub CLI, configures a git remote to the upstream, pulls the default branch and if on a branch other than the default then merges the default branch to the local current branch. Simplifies and automates keeping your checkout or forked repo up to date with the original source repo to quickly resolve merge conflicts locally and submit updated Pull Requests
   - `github_forked_add_remote.sh` - quickly adds a forked repo as a remote from an interactive men list of forked repos
   - `github_forked_checkout_branch.sh` - quickly check out a forked repo's branch from an interactive menu lists of forked repos and their branches
   - `github_actions_foreach_workflow.sh` - executes a templated command for each workflow in a given GitHub repo, replacing `{name}`, `{id}` and `{state}` in each iteration
@@ -963,7 +969,7 @@ See also [Knowledge Base notes for Git](https://github.com/HariSekhon/Knowledge-
     - `jenkins_cred_cli_set_ssh_key.sh` - creates or updates a Jenkins SSH key credential from a string or an SSH private key file
     - `jenkins_cred_cli_set_user_pass.sh` - creates or updates a Jenkins username/password credential
   - `jenkins_password.sh` - gets Jenkins admin password from local docker container. Used by `jenkins_cli.sh`
-  - `jenkins_plugins_latest_versions.sh` - finds the latest versions of given Jenkins plugins. Useful to programmatically upgrade your Jenkins on Kubernetes plugins defined in [values.yaml](https://github.com/HariSekhon/Kubernetes-configs/blob/master/jenkins/base/values.yaml#L150)
+  - `jenkins_plugins_latest_versions.sh` - finds the latest versions of given Jenkins plugins. Useful to programmatically upgrade your Jenkins on Kubernetes plugins defined in [values.yaml](https://github.com/HariSekhon/Kubernetes-configs/blob/6d9e34b74d3fa8f353b0fe56e74cea3af439e01a/jenkins/base/values.yaml#L145)
   - `check_jenkinsfiles.sh` - validates all `*Jenkinsfile*` files in the given directory trees using the online Jenkins validator
   - See also [Knowledge Base notes for Jenkins](https://github.com/HariSekhon/Knowledge-Base/blob/main/jenkins.md).
 - `teamcity/*.sh` - [TeamCity CI](https://www.jetbrains.com/teamcity/) scripts:
