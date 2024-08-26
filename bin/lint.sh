@@ -47,9 +47,14 @@ min_args 1 "$@"
 
 # defer expansion
 # shellcheck disable=SC2016
-trap_cmd 'exitcode=$?; echo; echo "Exit Code: $exitcode"'
+trap_cmd 'exitcode=$?; echo; echo "Error - Exit Code: $exitcode"'
 
 filename="$1"
+
+if ! [ -f "$filename" ]; then
+    echo "File not found: $filename"
+    exit 1
+fi
 
 # examples:
 #
@@ -106,6 +111,28 @@ else
                         packer fmt -diff "$filename"
                         ;;
                  *.md)  mdl "$basename"
+                        ;;
+               # this command doesn't exit 1 if the file isn't found
+               #.vimrc)  if ! vim -c "source $filename" -c "q"; then
+               .vimrc)  if vim -c "
+                            if !filereadable('$filename') |
+                                echoerr 'Error: File not found'
+                                cquit 1
+                            else
+                                source $filename
+                            endif
+                            " -c "q"; then
+                            echo "ViM basic lint validation passed"
+                        else
+                            die "ViM basic lint validation failed"
+                        fi
+                        if type -P vint &>/dev/null; then
+                            if vint "$filename"; then
+                                echo "Vint vim script linting passed"
+                            else
+                                die "Vint vim script linting failed"
+                            fi
+                        fi
                         ;;
                     *)  die "Cannot lint unrecognized file type for file: $filename"
                         ;;

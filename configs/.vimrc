@@ -44,7 +44,7 @@ set ls=1    " laststatus - Status line 0=off, 1=multi-windows, 2=on
 set listchars=tab:>-,eol:$,trail:.,extends:# " changes the list characters, makes tabs appear as >---
 set ml      " modeline - respect the vim: stuff at the stop of files, often off for root
 set mls=15  " modelines - Controls how many lines to check for modeline, systems often set this to 0
-set nocp    " nocompatible
+"set nocp    " nocompatible
 set nofen   " nofoldenable
 set nohls   " nohlsearch
 set nojs    " nojoinspaces - only use 1 space even when J joining lines even when line ends in a special char
@@ -86,7 +86,7 @@ set formatoptions+=or
 "behave mswin
 be xterm
 
-:if has("gui_running")
+:if has('gui_running')
     "colorscheme slate
     colo slate
 :endif
@@ -181,7 +181,7 @@ call vundle#end()
 
 nmap ;l :echo "No linting defined for this filetype:" &filetype<CR>
 
-if has("autocmd")
+if has('autocmd')
 
     " re-open at last cursor line and center screen on the cursor line
     "au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g'\"" | endif
@@ -274,6 +274,8 @@ if has("autocmd")
     " for scripts that don't end in .sh like Google Cloud Shell's .customize_environment
     au FileType sh                        nmap ;l :w<CR>:!clear; cd "%:p:h" && shellcheck -x -Calways "%:t" \| more -R<CR>
 
+    au BufNewFile,BufRead .vimrc    nmap ;l :w<CR> :!clear<CR> :call LintVimrc() <CR>
+
     " these tools are in the https://github.com/HariSekhon/DevOps-Python-tools & DevOps-Bash-tools repos which should be downloaded, run 'make' and add to $PATH
     au BufNew,BufRead *.csv        nmap ;l :w<CR>:!clear; validate_csv.py "%"<CR>
     au BufNew,BufRead *.cson       nmap ;l :w<CR>:!clear; validate_cson.py "%"<CR>
@@ -361,6 +363,7 @@ nmap          ;k :w<CR> :! check_kubernetes_yaml.sh "%" <CR>
 " done automatically on write now
 "nmap <silent> ;' :call StripTrailingWhiteSpace()<CR>
 nmap <silent> ;' :w<CR> :!clear; git diff "%" <CR>
+nmap          ;m :w<CR> :call MarkdownIndex() <CR>
 nmap          ;n :w<CR> :n<CR>
 nmap          ;o :!cd "%:p:h" && git log -p "%:t" <CR>
 nmap          ;O :call ToggleGutter()<CR>
@@ -379,14 +382,14 @@ nmap <silent> ;s :,!sqlcase.pl<CR>
 "nmap          ;; :call HgGitU()<CR>
 " command not found
 "nmap          ;; :! . ~/.bashrc; gitu "%" <CR>
-nmap          ;; :w<CR> :! bash -ic 'gitu "%"' <CR>
-nmap          ;/ :w<CR> :! bash -ic 'add "%"' <CR>
-nmap          ;g :w<CR> :! bash -ic 'cd "%:p:h" && st' <CR>
-nmap          ;G :w<CR> :! bash -ic 'cd "%:p:h" && git log -p "%:t"' <CR>
-"nmap          ;L :w<CR> :! bash -ic 'cd "%:p:h" && git log -p' <CR>
-nmap          ;L :w<CR> :! lint.sh %<CR>
-nmap          ;. :w<CR> :! bash -ic 'cd "%:p:h" && pull' <CR>
-nmap          ;[ :w<CR> :! bash -ic 'cd "%:p:h" && push' <CR>
+nmap          ;; :w<CR> :call GitUpdateCommit() <CR>
+nmap          ;/ :w<CR> :call GitAddCommit() <CR>
+nmap          ;g :w<CR> :call GitStatus() <CR>
+nmap          ;G :w<CR> :call GitLogP() <CR>
+nmap          ;L :w<CR> :! lint.sh % <CR>
+nmap          ;. :w<CR> :call GitPull() <CR>
+nmap          ;[ :w<CR> :call GitPush() <CR>
+nmap          ;, :w<CR> :s/^/</ <CR> :s/$/>/ <CR>
 " write then grep all URLs that are not mine, followed by all URLs that are mine in reverse order to urlview
 " this is so that 3rd party URLs followed by my URLs from within the body of files get higher priority than my header links
 nmap <silent> ;u :w<CR> :! bash -c 'grep -vi harisekhon "%" ; grep -i harisekhon "%" \| tail -r' \| urlview <CR> :<CR>
@@ -416,11 +419,11 @@ nmap          ;§ :call ToggleScrollLock()<CR>
 "noremap <Left>  <Left>
 "noremap <Right> <Right>
 
-if has("autocmd")
+if has('autocmd')
     au BufNew,BufRead *docker-compose.y*ml   nmap ;r :w<CR>:!clear; docker-compose -f "%" up<CR>
 endif
 
-if has("autocmd")
+if has('autocmd')
     "au BufNew,BufRead **/haproxy-configs/*.cfg   nmap ;r :w<CR>:!clear; haproxy -f "%:p:h/10-global.cfg" -f "%:p:h/20-stats.cfg" -f "%"<CR>
     au BufNew,BufRead **/haproxy-configs/*.cfg   nmap ;r :w<CR>:!clear; "%:p:h/run.sh" "%"<CR>
     au BufNew,BufRead **/haproxy-configs/*.cfg   nmap ;R :w<CR>:!clear; DEBUG=1 "%:p:h/run.sh" "%"<CR>
@@ -437,10 +440,10 @@ endif
 "
 "function! SourceVimrc()
 " This function won't reload as a result, must exit and restart vim
-if ! exists("*SourceVimrc")
+if ! exists('*SourceVimrc')
     function SourceVimrc()
         :source ~/.vimrc
-        let vim_tags = system("grep vim: " + expand("%") + " | head -n1 | sed 's/^\"[[:space:]]*vim:/set /; s/:/ /g'")
+        let vim_tags = system('grep vim: ' + expand('%') + " | head -n1 | sed 's/^\"[[:space:]]*vim:/set /; s/:/ /g'")
         " this breaks
         "echo &vim_tags
         "execute "normal!" . &vim_tags
@@ -451,6 +454,34 @@ if ! exists("*SourceVimrc")
         :set ts sts sw et filetype
     endfunction
 endif
+
+":! bash -c 'vim -c "source %" -c "q" && echo "ViM basic lint validation passed" || "ViM basic lint validation failed"'
+"":! if type -P vint &>/dev/null; then vint "%"; fi
+function! LintVimrc()
+  let l:vimrc_path = expand('~/.vimrc')
+
+  echo 'Sourcing ~/.vimrc file...'
+  try
+    execute 'source' l:vimrc_path
+    echohl InfoMsg | echo "Basic Validation Passed: .vimrc" | echohl None
+  catch
+    echohl ErrorMsg | echo "Basic Validate Failed: errors found in .vimrc" | echohl None
+    return
+  endtry
+
+  if executable('vint')
+    echo "Running vint..."
+    let l:vint_output = system('vint ' . l:vimrc_path)
+    if v:shell_error
+      echohl ErrorMsg | echo l:vint_output | echohl None
+      echohl ErrorMsg | echo "Vint Validation Failed: .vimrc" | echohl None
+    else
+      echohl InfoMsg | echo "Vint Validation Passed: .vimrc" | echohl None
+    endif
+  else
+    echohl WarningMsg | echo "Vint not found in PATH, skipping validation" | echohl None
+  endif
+endfunction
 
 function! ToggleSyntax()
     if exists("g:syntax_on")
@@ -503,10 +534,10 @@ endfunction
 
 function! ToggleDebug()
     if $DEBUG
-        echo "DEBUG disabled"
+        echo 'DEBUG disabled'
         let $DEBUG=""
     else
-        echo "DEBUG enabled"
+        echo 'DEBUG enabled'
         let $DEBUG=1
     endif
 endfunction
@@ -533,6 +564,43 @@ endfunction
 :command! JHr :normal a// <ESC>74a=<ESC>a //<ESC>
 
 :command! Done :normal 37a=<ESC>a DONE <ESC>37a=<ESC>
+
+" ============================================================================ "
+"                            G i t   F u n c t i o n s
+" ============================================================================ "
+
+" works better than a straight nmap which sometimes fails to execute and re-sourcing .vimrc doesn't solve it
+" without exiting vim - this is buggy behaviour that doesn't seem to happen when using functions instead
+
+function! GitUpdateCommit()
+    :! bash -ic 'cd "%:p:h" && gitu "%:t" '
+endfunction
+
+function! GitAddCommit()
+     ! bash -ic 'add "%"'
+endfunction
+
+function! GitStatus()
+    :! bash -ic 'cd "%:p:h" && st'
+endfunction
+
+function! GitLogP()
+    :! bash -ic 'cd "%:p:h" && git log -p "%:t"'
+endfunction
+
+function! GitPull()
+    :! bash -ic 'cd "%:p:h" && pull'
+endfunction
+
+function! GitPush()
+    :! bash -ic 'cd "%:p:h" && push'
+endfunction
+
+" ============================================================================ "
+
+function! MarkdownIndex()
+    :! markdown_replace_index.sh "%"
+endfunction
 
 " superceded by anonymize.py from DevOps Python tools repo, called via hotkey ;a declared above
 ":function RemoveIPs()
@@ -698,8 +766,8 @@ endfunction
 " ============================================================================ "
 
 " either works, requires expand()
-"let MYLOCALVIMRC = "~/.vimrc.local"
-"let MYLOCALVIMRC = "$HOME/.vimrc.local"
+"let MYLOCALVIMRC = '~/.vimrc.local'
+"let MYLOCALVIMRC = '$HOME/.vimrc.local'
 
 " source a config file only if it exists
 function! SourceIfExists(file)
@@ -708,9 +776,9 @@ function! SourceIfExists(file)
   endif
 endfunction
 
-call SourceIfExists("~/.vimrc.local")
-call SourceIfExists("~/.vim/colors.vim")
+call SourceIfExists('~/.vimrc.local')
+call SourceIfExists('~/.vim/colors.vim')
 
 if has('gui_running')
-  call SourceIfExists("~/.gvimrc.local")
+  call SourceIfExists('~/.gvimrc.local')
 endif

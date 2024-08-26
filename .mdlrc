@@ -1,1 +1,5 @@
-rules "~MD001", "~MD003", "~MD005", "~MD007", "~MD012", "~MD013", "~MD022", "~MD025", "~MD031", "~MD032", "~MD033", "~MD039", "~MD056"
+mdlrc_dir = File.expand_path('..', __FILE__)
+
+style_file = File.join(mdlrc_dir, '.mdl.rb')
+
+style style_file
