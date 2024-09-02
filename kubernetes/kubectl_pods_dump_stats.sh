@@ -66,20 +66,102 @@ while read -r pod; do
     # shellcheck disable=SC2015
     timestamp "Running stats commands on pod: $pod" &&
     output_file="kubectl-pod-stats.$(date '+%F_%H%M').$pod.txt" &&
-    echo &&
+    # Copied from ../bin/dump_stats.sh for servers
+    #
+    # Most of these won't be available inside a pod, but we can only try...
+    #
+    # exec'ing stderr to be send to stdout to be captured in the log sections of why the stats are not available eg.
+    #
+    #   bash: line 25: iostat: command not found
+    #   bash: line 35: mpstat: command not found
+    #   bash: line 39: sar: command not found
+    #   bash: line 44: sar: command not found
+    #   bash: line 68: netstat: command not found
+    #   bash: line 73: lsof: command not found
+    #
     kubectl exec "$pod" -- bash -c '
+        exec 2>&1
+
+        echo "Dumping common command outputs"
+        echo
         echo "Disk Space:"
         echo
         df -h
         echo
         echo
+        echo "Uname:"
+        echo
+        uname -a
+        echo
+        echo
+        echo "Uptime:"
+        echo
+        uptime
+        echo
+        echo
         echo "RAM in GB:"
+        echo
         free -g
         echo
         echo
-        echo "Top with Threads:"
+        echo "IOstat:"
+        echo
+        iostat -x 1 5
+        echo
+        echo
+        echo "lsblk:"
+        echo
+        lsblk
+        echo
+        echo
+        echo "MPstat:"
+        echo
+        mpstat -P ALL 1 5
+        echo
+        echo
+        echo "SAR 1 sec intervals x 5:"
+        echo
+        sar -u 1 5
+        echo
+        echo
+        echo "SAR -A:"
+        echo
+        sar -A
+        echo
+        echo
+        echo "Top snapshot with Threads:"
         echo
         top -H -b -n 1
+        echo
+        echo
+        echo "VMstat:"
+        echo
+        vmstat 1 5
+        echo
+        echo
+        echo "Process List:"
+        echo
+        ps -ef
+        echo
+        echo
+        echo "Process List Alternative - ps auxf:"
+        echo
+        ps auxf
+        echo
+        echo
+        echo "Netstat:"
+        echo
+        netstat -an
+        echo
+        echo
+        echo "LSOF:"
+        echo
+        lsof -n -O
+        echo
+        echo
+        echo "Dmesg:"
+        echo
+        dmesg
     ' >"$output_file" &&
     echo &&
     timestamp "Dumped stats commands outputs to file: $output_file" &&
