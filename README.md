@@ -310,6 +310,7 @@ Top-level `.bashrc`, `bin/`, `.bash.d/` and `configs/` directories:
 - `copy_to_clipboard.sh - copies stdin or string arg to system clipboard on Linux or Mac
 - `paste_from_clipboard.sh` - pastes from system clipboard to stdout on Linux or Mac
 - `paste_diff_settings.sh` - Takes snapshots of before and after clipboard changes and diffs them to show config changes
+- `pldd.sh` - parses `/proc` on Linux to show the runtime `.so` loaded dynamic shared libraries a program pid is using. Runtime equivalent of the classic static `ldd` command and because the system `pldd` command often fails to attach to a process
 - `random_select.sh` - selects one of given args at random. Useful for sampling, running randomized subsets of large test suites etc.
 - `shields_embed_logo.sh` - base64 encodes a given icon file or url and prints the `logo=...` url parameter you need to add the [shields.io](https://shields.io/) badge url
 - `shred_file.sh` - overwrites a file 7 times to DoD standards before deleting it to prevent recovery of sensitive information
@@ -751,6 +752,7 @@ See also [Knowledge Base notes for Hadoop](https://github.com/HariSekhon/Knowled
 
 - `git/*.sh` - [Git](https://git-scm.com/) scripts:
   - `precommit_run_changed_files.sh` - runs pre-commit on all files changed on the current branch vs the default branch. Useful to reproduce `pre-commit` checks that are failing in pull requests to get your PRs to pass
+  - `git_diff_commit.sh` - runs git diff and commit with a generic `updated $filename` commit message for each file in the files or directories given if they have changed, or all committed files under `$PWD` if no args are given. Super convenient for fast commits on the command line, and in vim and IDEs via hotkeys
   - `git_branch_delete_squash_merged.sh` - carefully detects if a squash merged branch you want to delete has no changes with the default trunk branch before deleting it.
      See [Squash Merges](https://github.com/HariSekhon/Knowledge-Base/blob/main/git.md#squash-merges-require-force-deleting-branches) in knowledge-base about why this is necessary.
   - `git_foreach_branch.sh` - executes a command on all branches (useful in heavily version branched repos like in my [Dockerfiles](https://github.com/HariSekhon/Dockerfiles) repo)
