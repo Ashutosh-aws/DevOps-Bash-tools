@@ -28,7 +28,8 @@ Useful to be able to stream videos to devices like smart TVs that may otherwise 
 
 Names the generated files the same except with the '.avi' extension replaced with '.mp4'
 
-Skips files which already have a corresponding adjacent '.mp4' file present to be able to resume partial directory conversions, and also removes partially complete files for consistency using bash trapping
+Skips files which already have a corresponding adjacent '.mp4' file present to be able to resume partial directory
+conversions, and also removes partially complete files for consistency using bash trapping
 "
 
 # used by usage() in lib/utils.sh
@@ -39,7 +40,8 @@ help_usage "$@"
 
 #min_args 1 "$@"
 
-check_bin ffmpeg
+check_bin ffmpeg ||
+"$srcdir/../packages/install_packages.sh" ffmpeg
 
 SECONDS=0
 

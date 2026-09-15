@@ -37,7 +37,10 @@ export PATH="$PATH:/usr/local/bin"
 #. "$srcdir_bash_tools_utils/ruby.sh"
 
 # consider adding ERR as set -e handler, not inherited by shell funcs / cmd substitutions / subshells without set -E
-export TRAP_SIGNALS="INT QUIT TRAP ABRT TERM EXIT"
+# don't trap INT and EXIT with the same handler as INT triggers on Control-C and so a script exit runs the handler twice
+# same for the other signals, EXIT is generally enough
+#export TRAP_SIGNALS="INT QUIT TRAP ABRT TERM EXIT"
+export TRAP_SIGNALS="EXIT"
 
 # prevents illegal byte encoding errors when piping to filenames with unicode characters
 # doesn't work in CentOS 8 docker, gets this error
@@ -46,25 +49,6 @@ export TRAP_SIGNALS="INT QUIT TRAP ABRT TERM EXIT"
 # but this works
 export LANG=en_US.UTF-8
 
-open(){
-    if is_mac; then
-        command open "$@"
-    elif type -P xdg-open &>/dev/null; then
-        xdg-open "$@"
-    elif sensible-browser &>/dev/null; then
-        sensible-browser "$@"
-    elif x-www-browser &>/dev/null; then
-        x-www-browser "$@"
-    elif gnome-open &>/dev/null; then
-        gnome-open "$@"
-    else
-        echo "Neither 'xdg-open' nor 'sensible-browser' were found in \$PATH - install one of them to automatically open this URL:"
-        echo
-        echo "$*"
-        echo
-    fi
-}
-
 if [ -z "${run_count:-}" ]; then
     run_count=0
 fi
@@ -72,13 +56,17 @@ if [ -z "${total_run_count:-}" ]; then
     total_run_count=0
 fi
 
+# used in calling curl_*.sh scripts
+# shellcheck disable=SC2034
+user_agent=(-A "HariSekhon/DevOps-Bash-tools (contact: GitHub repo)")
+
 # ERE format (egrep / grep -E)
 #
 # used in client scripts
 # shellcheck disable=SC2034
-domain_regex='\b(([A-Za-z0-9](-?[A-Za-z0-9])*)\.)+[A-Za-z]{2,}\b'
+domain_regex='(([A-Za-z0-9](-?[A-Za-z0-9])*)\.)+[A-Za-z]{2,}'
 # shellcheck disable=SC2034
-email_regex='\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b'
+email_regex='[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}'
 # shellcheck disable=SC2034
 ip_regex='[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'
 # shellcheck disable=SC2034
@@ -243,6 +231,68 @@ is_interactive(){
     return 1
 }
 
+# normalizes two paths using readlink and then returns true if they are the same
+# relies on GNU readlink (greadlink on mac) and the mac portability layer in this library to ensure it uses the right one
+is_same_path(){
+    local path1="$1"
+    local path2="$2"
+    [ "$(readlink -f "$path1")" != "$(readlink -f "$path2")" ]
+}
+
+is_directory_populated(){
+    local dir="$1"
+    local exceptfile="$2"  # useful for locking dirs with only a pidfile, pass the pid file as an arg
+    if [ -f "$dir" ]; then
+        die "File passed to is_directory_populated() function: $dir"
+    # scripts should check themselves if they expect the directory to pre-exist
+    # eg. I want to use this in lockdir.sh and in that case the atomic locking dir must not pre-exist
+    #elif ! [ -d "$dir" ]; then
+        #warn "Directory does not exist: $dir"
+    fi
+    if ! [[ "$exceptfile" =~ / ]]; then
+        exceptfile="$dir/$exceptfile"
+    fi
+    if is_same_path "$dir" "$(dirname "$exceptfile")"; then
+        die "Exceptfile passed to is_directory_populated() function is not within the given directory: $dir vs $exceptfile"
+    fi
+    # trailing slash will fail if it's not a directory
+    # silently ignore if the directory is not found
+    if [ "$(
+            find "$dir/" 2>/dev/null |
+            sed 's|//|/|g' |
+            grep -Fxv -e "$dir" -e "$dir/" |
+            grep -c . || :
+           )" -gt 1 ]; then
+        return 0
+    elif [ "$(
+                find "$dir/" |
+                sed 's|//|/|g' |
+                grep -Fxv -e "$dir" -e "$dir/" -e "$exceptfile" |
+                grep -c . || :
+             )" -gt 0 ]; then
+        return 0
+    fi
+    return 1
+}
+
+file_newer_than_mins(){
+    local mins="$1"
+    local file="$2"
+    local mtime
+    if ! is_int "$mins"; then
+        die "Error: non-integer passed as first arg to file_newer_than_mins() function"
+    fi
+    local secs="$((mins * 60))"
+
+    if is_mac; then
+        mtime=$(stat -f %m "$file")
+    else  # assume Linux GNU stat
+        mtime=$(stat -c %Y "$file")
+    fi
+
+    (( "$(date +%s)" - mtime <= secs ))
+}
+
 # XXX: there are other tarball extensions for other compression algorithms but these are the 2 very standard ones we always use: gzip or bz2
 has_tarball_extension(){
     local filename="$1"
@@ -267,53 +317,6 @@ has_tarball_bzip2_extension(){
     # .tbz
     # .tar.bz2
     [[ "$filename" =~ \.(tbz|tar\.bz2)$ ]]
-}
-
-get_os(){
-    local os
-    os="$(uname -s | tr '[:upper:]' '[:lower:]')"
-    if [ -n "${OS_DARWIN:-}" ]; then
-        if is_mac; then
-            os="$OS_DARWIN"
-        fi
-    elif [ -n "${OS_LINUX:-}" ]; then
-        if is_linux; then
-            os="$OS_LINUX"
-        fi
-    fi
-    echo "$os"
-}
-
-get_arch(){
-    local arch
-    arch="$(uname -m)"
-    if [ "$arch" = x86_64 ]; then
-        arch=amd64  # files are conventionally usually named amd64 not x86_64
-    fi
-    if [ -n "${ARCH_X86_64:-}" ]; then
-        if [ "$arch" = amd64 ] || [ "$arch" = x86_64 ]; then
-            arch="$ARCH_X86_64"
-        fi
-    fi
-    if [ -n "${ARCH_X86:-}" ]; then
-        if [ "$arch" = i386 ]; then
-            arch="$ARCH_X86"
-        fi
-    fi
-    if [ -n "${ARCH_ARM64:-}" ]; then
-        if [ "$arch" = arm64 ]; then
-            arch="$ARCH_ARM64"
-        fi
-    fi
-    if [ -n "${ARCH_ARM:-}" ]; then
-        if [ "$arch" = arm ]; then
-            arch="$ARCH_ARM"
-        fi
-    fi
-    if [ -n "${ARCH_OVERRIDE:-}" ]; then
-        arch="$ARCH_OVERRIDE"
-    fi
-    echo "$arch"
 }
 
 curl(){
@@ -399,6 +402,15 @@ is_min_version(){
         fi
     done
     return 0
+}
+
+is_online(){
+    if is_mac; then
+        ping -c1 -W1 1.1.1.1 &>/dev/null && return 0
+    else
+        ping -c1 -t1 1.1.1.1 &>/dev/null && return 0
+    fi
+    return 1
 }
 
 is_semver(){
@@ -527,7 +539,10 @@ trap_debug_env(){
     if is_CI &&
        ! type trap_function &>/dev/null &&
        type docker_image_cleanup &>/dev/null; then
+        # trap_function is not called here
+        # shellcheck disable=SC2329
         trap_function(){
+            # shellcheck disable=SC2317
             docker_image_cleanup
         }
     fi
@@ -567,6 +582,13 @@ read_secret(){
 }
 
 if is_mac; then
+    awk(){
+        # needed for awk -v IGNORECASE=1 to work for case insensitive regex
+        command gawk "$@"
+    }
+    grep(){
+        command ggrep "$@"
+    }
     readlink(){
         command greadlink "$@"
     }
@@ -724,6 +746,13 @@ parse_run_args(){
     perl -ne 'if(/^\s*(#|\/\/|--)\s*run:/){s/^\s*(#|\/\/)\s*run:\s*//; print $_; exit}' "$@"
 }
 
+# examples:
+#
+# #  stdin: Driving & road trip playlist
+parse_run_stdin(){
+    perl -ne 'if(/^\s*(#|\/\/|--)\s*stdin:/){s/^\s*(#|\/\/)\s*stdin:\s*//; print $_; exit}' "$@"
+}
+
 # example:
 #
 # lint: k8s
@@ -742,9 +771,12 @@ stat_bytes(){
 }
 
 timestamp(){
-    printf "%s" "$(date '+%F %T')  $*" >&2
+    local ts
+    ts="$(date '+%F %T')"
     if [ $# -gt 0 ]; then
-        printf '\n' >&2
+        printf "%s  %s\n" "$ts" "$*" >&2
+    else
+        printf "%s  " "$ts" >&2
     fi
 }
 tstamp(){ timestamp "$@"; }
@@ -769,6 +801,62 @@ log(){
     if is_verbose; then
         timestamp "$@"
     fi
+}
+
+trim(){
+    local str="$1"
+    # easier
+    #sed '
+    #    s/^[[:space:]]*//;
+    #    s/[[:space:]]*$//;
+    #' <<< "$str"
+
+    # more efficient without process fork to sed
+    #
+    # not using shopt -s extglob because then I have to track it its prior state
+    # from parent/client calling script and restore it
+    #
+    #str="${str##+([[:space:]])}"  # trim leading
+    #str="${str%%+([[:space:]])}"  # trim trailing
+    #
+    # trim leading whitespace
+    str="${str#"${str%%[![:space:]]*}"}"
+    # trim trailing whitespace
+    str="${str%"${str##*[![:space:]]}"}"
+
+    # strip literal \n at edges
+    # leading
+    while [[ "$str" == '\n'* ]]; do
+        str="${str#\\n}"
+    done
+
+    # trailing
+    while [[ "$str" == *'\n' ]]; do
+        str="${str%\\n}"
+    done
+
+    echo "$str"
+}
+# used in subshells to capture output so export it
+export -f trim
+
+clear_current_line(){
+    # Terminal Codes:
+    #
+    # \r       - position cursor back to column 0
+    # \033[K   - ESC + [K = clear line
+    #
+    printf "\r\033[K"
+}
+
+clear_previous_line(){
+    # Terminal Codes:
+    #
+    # \033[1A  - ESC + [1A = move cursor up one line
+    # \033[2K  - ESC + [2K = clear entire line
+    # \r       - position cursor back to column 0
+    #
+    printf "\033[1A\033[2K\r"
 }
 
 start_timer(){
@@ -820,6 +908,11 @@ next_available_port(){
         fi
     done
     echo "$local_port"
+}
+
+when_pingable(){
+    local host="$1"
+    ping -o "$host"
 }
 
 when_ports_available(){
@@ -1098,7 +1191,6 @@ retry(){
     done
 }
 
-
 timeout(){
     if is_mac; then
         gtimeout "$@"
@@ -1164,8 +1256,8 @@ num_args(){
 help_usage(){
     for arg; do
         case "$arg" in
-            -h|--help)  usage
-                        ;;
+            -h|-help|--help)  usage
+                              ;;
         esac
     done
 }
@@ -1200,7 +1292,6 @@ check_env_defined(){
         usage "\$$env not defined"
     fi
 }
-
 
 is_yes(){
     shopt -s nocasematch
@@ -1254,6 +1345,11 @@ is_port(){
     elif [ "$port" -gt 65535 ]; then
         return 1
     fi
+}
+
+is_url(){
+    local arg="$1"
+    [[ "$arg" =~ ^$url_regex$ ]]
 }
 
 exponential(){
@@ -1396,3 +1492,44 @@ jq_is_empty_list(){
     jq -e 'length == 0' >/dev/null
 }
 # ==============================
+
+# parse a .dat file's column to CSV - used to generate data for embedding into MermaidJS mmd config in:
+#
+# git/git_graph_*_mermaidjs.sh
+#   and
+# github/github_graph_*_mermaidjs.sh
+#
+parse_file_col_to_csv(){
+    local data_file="$1"
+    local field="$2"
+    awk "{print \$$field}" "$data_file" |
+    tr '\n' ',' |
+    sed 's/,/, /g; s/, $//'
+}
+
+file_modified_in_last_days(){
+    local file="$1"
+    local days="$2"
+    if ! is_int "$days"; then
+        die "Non-integer passed as second arg to file_modified_in_last_days()"
+    fi
+    if ! [ -f "$file" ]; then
+        return 1
+    elif find "$file" -mtime -"$days" -print | grep -q .; then
+        return 0
+    else
+        local days_ago_in_seconds
+        days_ago_in_seconds="$(date -d "$days days ago" '+%s')"
+        if is_mac; then
+            if [ "$(stat -f '%m' "$file")" -ge "$days_ago_in_seconds" ]; then
+                return 0
+            else
+                return 1
+            fi
+        elif [ "$(stat -c '%Y' "$file")" -ge "$days_ago_in_seconds" ]; then
+            return 0
+        else
+            return 1
+        fi
+    fi
+}

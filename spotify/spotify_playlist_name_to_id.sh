@@ -10,7 +10,8 @@
 #
 #  License: see accompanying Hari Sekhon LICENSE file
 #
-#  If you're using my code you're welcome to connect with me on LinkedIn and optionally send me feedback to help steer this or other code I publish
+#  If you're using my code you're welcome to connect with me on LinkedIn
+#  and optionally send me feedback to help steer this or other code I publish
 #
 #  https://www.linkedin.com/in/HariSekhon
 #
@@ -28,7 +29,12 @@ Uses Spotify API to translate a Spotify public playlist name to ID
 
 If a Spotify playlist ID is given, returns it as is (this is for coding convenience when calling from other scripts)
 
+If a Spotify link to playlist is given, extracts the playlist ID and skips the API lookup
+
 Needed by several other adjacent spotify tools
+
+This is quite a slow O(n) operation as it has to iterate through all playlists until it finds a matching name to
+retrieve its ID and is therefore used as a last resort by my adjacent scripts
 
 
 $usage_playlist_help
@@ -54,6 +60,10 @@ export SPOTIFY_PLAYLIST_EXACT_MATCH=1
 playlist_name_to_id(){
     local playlist_name="$1"
     shift || :
+    if [[ "$playlist_name" =~ https://open.spotify.com/playlist/ ]]; then
+        playlist_name="${playlist_name##https://open.spotify.com/playlist/}"
+        playlist_name="${playlist_name%%\?*}"
+    fi
     # if it's not a playlist id, scan all playlists and take the ID of the first matching playlist name
     if is_spotify_playlist_id "$playlist_name"; then
         echo "$playlist_name"
@@ -89,6 +99,9 @@ playlist_name_to_id(){
         if is_blank "$playlist_id"; then
             echo "Error: failed to find playlist ID matching given playlist name '$playlist_name'" >&2
             exit 1
+        fi
+        if ! is_spotify_playlist_id "$playlist_id"; then
+            die "ERROR: playlist id '$playlist_id' does not match expected regex"
         fi
         echo "$playlist_id"
     fi

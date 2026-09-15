@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #  vim:ts=4:sts=4:sw=4:et
+#  stdin: Driving &amp; road trips
 #
 #  Author: Hari Sekhon
 #  Date: 2019-12-20 16:01:28 +0000 (Fri, 20 Dec 2019)
@@ -35,6 +36,8 @@ usage_description="
 Runs one or more files
 
 Auto-determines the file types, any run or arg headers and executes each file using the appropriate script or CLI tool
+
+Useful to call from vim or IDEs via hotkeys to portably standardize quick build testing while editing
 "
 
 # used by usage() in lib/utils.sh
@@ -50,6 +53,7 @@ min_args 1 "$@"
 trap_cmd 'exitcode=$?; echo; echo "Exit Code: $exitcode"'
 
 filename="$1"
+shift || :
 
 # examples:
 #
@@ -57,6 +61,13 @@ filename="$1"
 # // run: go run file.go
 # -- run: psql -f file.sql
 run_cmd="$(parse_run_args "$filename")"
+run_stdin="$(parse_run_stdin "$filename")"
+
+# if stdin: is defined in the file, replace the stdin to this script with it
+# so whichever program is called inherits this stdin
+if not_blank "$run_stdin"; then
+    exec <<< "$run_stdin"
+fi
 
 filename="$(readlink -f "$filename")"
 dirname="$(dirname "$filename")"
@@ -74,7 +85,7 @@ docker_compose_up(){
 }
 
 if [ -n "$run_cmd" ]; then
-    eval "$run_cmd"
+    eval "$run_cmd" ${run_stdin:+<<< "$run_stdin"}
 # fails to do the open for d2 diagrams
 #elif test -x "$basename"; then
 #    ./"$basename"
@@ -91,6 +102,11 @@ else
 *docker-compose*.y*ml)  docker_compose_up
                         ;;
               Gemfile)  bundle install
+                        ;;
+                    Fastfile) if [[ "$(readlink -f "$basename")" =~ /fastlane/Fastfile ]]; then
+                            cd ".."
+                            fastlane "$@"
+                        fi
                         ;;
      cloudbuild*.y*ml)  gcloud builds submit --config "$basename" .
                         ;;
@@ -110,39 +126,42 @@ else
                         fi
                         open "$latest_image"
                         ;;
-                 *.go)  eval go run "'$filename'" "$("$srcdir/lib/args_extract.sh" "$filename")"
+                 *.go)  eval go run "'$basename'" "$("$srcdir/lib/args_extract.sh" "$basename")"
                         ;;
                  *.tf)  #terraform plan
                         terraform apply
                         ;;
        terragrunt.hcl)  terragrunt apply
                         ;;
- *.pkr.hcl|*.pkr.json)  packer init "$filename" &&
-                        packer build "$filename"
+ *.pkr.hcl|*.pkr.json)  packer init "$basename" &&
+                        packer build "$basename"
                         ;;
                  *.md)  bash -ic "cd '$dirname'; gitbrowse"
                         ;;
-                 *.gv)  file_png="${filename%.gv}.png"
-                        dot -T png "$filename" -o "$file_png" >/dev/null && open "$file_png"
+                 *.gv)  file_png="${basename%.gv}.png"
+                        dot -T png "$basename" -o "$file_png" >/dev/null && open "$file_png"
                         ;;
             .pylintrc)  pylint ./*.py
                         ;;
-                    *)  if [[ "$filename" =~ /docker-compose/.+\.ya?ml$ ]]; then
+                    *)  if [[ "$basename" =~ /docker-compose/.+\.ya?ml$ ]]; then
                             docker_compose_up
-                        elif [[ "$filename" =~ \.ya?ml$ ]] &&
-                           grep -q '^apiVersion:' "$filename" &&
-                           grep -q '^kind:'       "$filename"; then
+                        elif [[ "$basename" =~ \.ya?ml$ ]] &&
+                           grep -q '^apiVersion:' "$basename" &&
+                           grep -q '^kind:'       "$basename"; then
                             # a yaml with these apiVersion and kind fields is almost certainly a kubernetes manifest
-                            kubectl apply -f "$filename"
+                            kubectl apply -f "$basename"
                             exit 0
                         fi
-                        if ! [ -x "$filename" ]; then
+                        if ! [ -x "$basename" ]; then
                             echo "ERROR: file '$filename' is not set executable!" >&2
                             exit 1
                         fi
-                        args="$("$srcdir/lib/args_extract.sh" "$filename")"
-                        echo "'$filename'" "$args" >&2
-                        eval "'$filename'" "$args"
+                        if [ "$(type -P "$basename" 2>/dev/null)" != "$PWD/$basename" ]; then
+                            basename="./$basename"
+                        fi
+                        args="$("$srcdir/lib/args_extract.sh" "$basename")"
+                        echo "'$basename'" "$args" >&2
+                        eval "'$basename'" "$args"
                         ;;
     esac
 fi

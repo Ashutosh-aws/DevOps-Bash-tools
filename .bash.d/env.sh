@@ -52,6 +52,29 @@ export LSCOLORS="gx"
 #Defaults	env_keep += "ENV"
 export ENV=~/.bashrc
 
+# ============================================================================ #
+
+cpenv(){
+    local env_var="$1"
+    if [[ -z "${!env_var}" ]]; then
+        echo "Error: Environment variable '$env_var' is not set"
+        return 1
+    fi
+    copy_to_clipboard.sh <<< "${!env_var}"
+    echo "Value of '$env_var' has been copied to the clipboard"
+}
+
+# Autocomplete function for environment variables
+_cpenv_autocomplete() {
+    # 'compgen -v' lists all environment variables
+    # COMPREPLY is set to the autocomplete options
+    local cur_word="${COMP_WORDS[COMP_CWORD]}"
+    COMPREPLY=($(compgen -v -- "$cur_word"))
+}
+
+# Register autocomplete function for `cpenv`
+complete -F _cpenv_autocomplete cpenv
+
 
 # ============================================================================ #
 #             L o c a l e   I n t e r n a t i o n a l i z a t i o n
@@ -112,6 +135,10 @@ fi
 if is_mac; then
     #BROWSER=open
     unset BROWSER
+elif type -P brave-browser &>/dev/null; then
+    BROWSER=brave-browser
+elif type -P brave &>/dev/null; then
+    BROWSER=brave
 elif type -P google-chrome &>/dev/null; then
     BROWSER=google-chrome
 elif type -P firefox &>/dev/null; then

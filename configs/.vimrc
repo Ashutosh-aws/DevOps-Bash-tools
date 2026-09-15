@@ -1,8 +1,16 @@
+"  vim:ts=4:sts=4:sw=4:tw=0:et
 "
 "  Author: Hari Sekhon
 "  Date: 2006-07-01 22:52:16 +0100 (Sat, 01 Jul 2006)
 "
-"  vim:ts=4:sts=4:sw=4:tw=0:et
+"  https://github.com/HariSekhon/DevOps-Bash-tools
+"
+"  License: see accompanying Hari Sekhon LICENSE file
+"
+"  If you're using my code you're welcome to connect with me on LinkedIn
+"  and optionally send me feedback to help steer this or other code I publish
+"
+"  https://www.linkedin.com/in/HariSekhon
 "
 
 " ============================================================================ "
@@ -12,6 +20,11 @@
 " to reload without restarting vim
 "
 " :source ~/.vimrc
+
+set encoding=utf-8      " The encoding displayed
+set fileencoding=utf-8  " The encoding written to file
+
+scriptencoding utf-8
 
 " if you cursor location and copy/paste register buffers are not saving
 " then ensure that your ~/.viminfo file is owned by your user:
@@ -23,6 +36,7 @@ syn on
 highlight StatusLine ctermfg=yellow ctermbg=darkgray
 highlight StatusLineNC ctermfg=darkgrey ctermbg=yellow
 highlight VertSplit ctermfg=darkgrey ctermbg=yellow
+"set statusline=%f\ %h%w%m%r\ %=%-14.(%l,%c%V%)\ %P
 
 set visualbell
 
@@ -40,7 +54,7 @@ set et      " expandtab
 set ic      " ignorecase
 set is      " incsearch
 "set list   " visually displays eol, tabs etc so you can always see them
-set ls=1    " laststatus - Status line 0=off, 1=multi-windows, 2=on
+set ls=2    " laststatus - Status line 0=off, 1=multi-windows, 2=on
 set listchars=tab:>-,eol:$,trail:.,extends:# " changes the list characters, makes tabs appear as >---
 set ml      " modeline - respect the vim: stuff at the stop of files, often off for root
 set mls=15  " modelines - Controls how many lines to check for modeline, systems often set this to 0
@@ -69,13 +83,12 @@ set autoread
 " write buffer on next / prev etc
 set autowrite
 
-set encoding=utf-8      " The encoding displayed.
-set fileencoding=utf-8  " The encoding written to file.
-
 " add comment to next line when using 'o' in command mode
 " add comment to next line when using Insert mode
 set formatoptions+=or
 
+" double forward slash means put backup files directly under this directory instead of trying to recreate the directory structure which might fail
+"set backupdir=.,~//
 
 " ============================================================================ "
 "                                   G U I
@@ -145,6 +158,7 @@ Plugin 'tpope/vim-surround'
 Plugin 'tmux-plugins/vim-tmux'
 " https://github.com/motus/pig.vim
 "Bundle "motus/pig.vim"
+Plugin 'wakatime/vim-wakatime'
 
 " comment at start of line instead of code indentation level
 " doesn't work: https://github.com/preservim/nerdcommenter/issues/467
@@ -184,33 +198,32 @@ call vundle#end()
 "nmap <silent> ;c :call Cformat() <CR>
 nmap <silent> ;a :,!anonymize.py -a <CR>
 nmap          ;A :,!hexanonymize.py --case --hex-only <CR>
-nmap <silent> ;b :!git blame "%"<CR>
+nmap <silent> ;b :!git blame "%" <CR>
 "nmap <silent> ;c :call ToggleComments()<CR>
 nmap <silent> ;c :,!center.py<CR>
 nmap <silent> ;e :,!center.py --space<CR>
 nmap <silent> ;C :,!center.py --unspace<CR>
 " parses current example line and passes as stdin to bash to quickly execute examples from code - see WriteRunLine() further down for example
 " messes up interactive vim (disables vim's arrow keys) - calling a terminal reset fixes it
-nmap <silent> ;E :call WriteRunLine()<CR> :!reset <CR><CR>
+nmap <silent> ;E :call WriteRunLine() \| !reset <CR><CR>
 nmap <silent> ;d :r !date '+\%F \%T \%z (\%a, \%d \%b \%Y)'<CR>kJ
 "nmap <silent> ;D :Done<CR>
 nmap <silent> ;D :%!decomment.sh "%" <CR>
 nmap          ;f :,!fold -s -w 120 \| sed 's/[[:space:]]*$//'<CR>
-"nmap <silent> ;h :call Hr()<CR>
-nmap <silent> ;h :Hr<CR>
+nmap <silent> ;h :call Hr()<CR>
 nmap          ;H :call WriteHelp()<CR>
 " this inserts Hr literally
 "imap <silent> <C-H> :Hr<CR>
 nmap <silent> ;I :PluginInstall<CR>
-nmap          ;i :! idea % <CR> :wq <CR>
+nmap          ;i :! idea % \| wq <CR>
 nmap <silent> ;j :JHr<CR>
-nmap          ;k :w<CR> :! check_kubernetes_yaml.sh "%" <CR>
+nmap          ;k :w \| ! check_kubernetes_yaml.sh "%" <CR>
 "nmap <silent> ;' :call Sq()<CR>
 " done automatically on write now
 "nmap <silent> ;' :call StripTrailingWhiteSpace()<CR>
-nmap <silent> ;' :w<CR> :!clear; git diff "%" <CR>
-nmap          ;m :w<CR> :call MarkdownIndex() <CR>
-nmap          ;n :w<CR> :n<CR>
+nmap <silent> ;' :w \| !clear; git diff "%" <CR>
+nmap          ;m :w \| call MarkdownIndex() <CR>
+nmap          ;n :w \| n<CR>
 nmap          ;o :!cd "%:p:h" && git log -p "%:t" <CR>
 nmap          ;O :call ToggleGutter()<CR>
 nmap          ;p :prev<CR>
@@ -228,20 +241,25 @@ nmap <silent> ;s :,!sqlcase.pl<CR>
 "nmap          ;; :call HgGitU()<CR>
 " command not found
 "nmap          ;; :! . ~/.bashrc; gitu "%" <CR>
-nmap          ;; :w<CR> :call GitUpdateCommit() <CR>
-nmap          ;/ :w<CR> :call GitAddCommit() <CR>
-nmap          ;g :w<CR> :call GitStatus() <CR>
-nmap          ;G :w<CR> :call GitLogP() <CR>
-nmap          ;L :w<CR> :! lint.sh % <CR>
-nmap          ;. :w<CR> :call GitPull() <CR>
-nmap          ;[ :w<CR> :call GitPush() <CR>
-nmap          ;, :w<CR> :s/^/</ <CR> :s/$/>/ <CR>
+" sometimes doesn't trigger, see if removing the space helps
+"nmap          ;; :w!<CR>:call GitUpdateCommit() <CR>
+" technically more accurate to not leave command mode
+nmap          ;; :w! \| call GitUpdateCommit() <CR>
+"nnoremap <nowait> ;; :w! \| call GitUpdateCommit() <CR>
+nmap          ;/ :w \| call GitAddCommit() <CR>
+nmap          ;g :w \| call GitStatus() <CR>
+nmap          ;G :w \| call GitLogP() <CR>
+nmap          ;L :w \| ! lint.sh % <CR>
+nmap          ;. :w \| call GitPull() <CR>
+nmap          ;[ :w \| call GitPush() <CR>
+nmap          ;, :w \| s/^/</ \| s/$/>/ <CR>
 " write then grep all URLs that are not mine, followed by all URLs that are mine in reverse order to urlview
 " this is so that 3rd party URLs followed by my URLs from within the body of files get higher priority than my header links
-nmap <silent> ;u :w<CR> :! bash -c 'grep -vi harisekhon "%" ; grep -i harisekhon "%" \| tail -r' \| urlview <CR> :<CR>
+"nmap <silent> ;u :w \| ! bash -c 'grep -vi harisekhon "%" ; grep -i harisekhon "%" \| tail -r' \| urlview \| <CR>
+nmap <silent> ;u :w \| ! bash -c '{ urlextract.sh "%" ; terraform_registry_url_extract.sh "%"; } \| terraform_registry_url_to_https.sh \| lines_to_end.sh harisekhon \| urlview' \| <CR>
 " pass current line as stdin to urlview to quickly go to this url
 " messes up interactive vim (disables vim's arrow keys) - calling a terminal reset fixes it
-"nmap <silent> ;U :.w !urlview<CR><CR> :!reset<CR><CR>
+"nmap <silent> ;U :.w !urlview<CR> \| !reset<CR><CR>
 nmap <silent> ;U :.w !urlopen.sh<CR><CR>
 " breaks ;; nmap
 "nmap          ;\ :source ~/.vimrc<CR>
@@ -255,8 +273,8 @@ nmap          ;y :w !pbcopy<CR><CR>
 nmap          ;z :call ToggleDebug()<CR>
 nmap          ;§ :call ToggleScrollLock()<CR>
 
-"noremap <silent> ,cc :<C-B>silent <C-E>s/^/<C-R>=escape(b:comment_char,'\/')<CR>/<CR>:nohlsearch<CR>
-"noremap <silent> ,cu :<C-B>silent <C-E>s/^\V<C-R>=escape(b:comment_char,'\/')<CR>//e<CR>:nohlsearch<CR>
+"noremap <silent> ,cc :<C-B>silent <C-E>s/^/<C-R>=escape(b:comment_char,'\/')<CR>/ \| nohlsearch<CR>
+"noremap <silent> ,cu :<C-B>silent <C-E>s/^\V<C-R>=escape(b:comment_char,'\/')<CR>//e \| nohlsearch<CR>
 
 " reloading with these didn't fix above pipe disabling arrow keys but
 " adding a terminal reset after the pipe command did fix it
@@ -265,17 +283,6 @@ nmap          ;§ :call ToggleScrollLock()<CR>
 "noremap <Left>  <Left>
 "noremap <Right> <Right>
 
-if has('autocmd')
-    au BufNew,BufRead *docker-compose.y*ml   nmap ;r :w<CR>:!clear; docker-compose -f "%" up<CR>
-endif
-
-if has('autocmd')
-    "au BufNew,BufRead **/haproxy-configs/*.cfg   nmap ;r :w<CR>:!clear; haproxy -f "%:p:h/10-global.cfg" -f "%:p:h/20-stats.cfg" -f "%"<CR>
-    au BufNew,BufRead **/haproxy-configs/*.cfg   nmap ;r :w<CR>:!clear; "%:p:h/run.sh" "%"<CR>
-    au BufNew,BufRead **/haproxy-configs/*.cfg   nmap ;R :w<CR>:!clear; DEBUG=1 "%:p:h/run.sh" "%"<CR>
-endif
-
-
 " ============================================================================ "
 "                               A u t o c m d
 " ============================================================================ "
@@ -283,6 +290,7 @@ endif
 nmap ;l :echo "No linting defined for this filetype:" &filetype<CR>
 
 if has('autocmd')
+  augroup filetype_settings
 
     " re-open at last cursor line and center screen on the cursor line
     "au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g'\"" | endif
@@ -310,7 +318,7 @@ if has('autocmd')
 
     au BufNewFile,BufRead Makefile set noet
     au BufNewFile,BufRead *.md set ts=2 sw=2 sts=2 et
-    au BufNewFile,BufRead *Jenkinsfile* set filetype=groovy ts=2 sw=2 sts=2 et
+    au BufNewFile,BufRead Jenkinsfile* set filetype=groovy ts=2 sw=2 sts=2 et
 
     au BufNewFile,BufRead LICENSE set tw=80
 
@@ -336,9 +344,7 @@ if has('autocmd')
     "au BufNew,BufRead *.txt set ft=
     au BufNew,BufRead *.txt hi def link confString  NONE
 
-    augroup filetypedetect
-        au! BufRead,BufNewFile *.hta setfiletype html
-    augroup end
+    au BufRead,BufNewFile *.hta setfiletype html
 
 "    autocmd FileType c,cpp,java,scala let b:comment_char = '//'
 "    autocmd FileType sh,perl,python   let b:comment_char = '#'
@@ -349,13 +355,15 @@ if has('autocmd')
 "    autocmd FileType mail             let b:comment_char = '>'
 "    autocmd FileType vim              let b:comment_char = '"'
 
+    au BufNew,BufRead *   nmap ;l :w \| !clear; lint.sh "%" <CR>
+
     " headtail.py is useful to see the top things to fix and the score on each run and can be found in the
     " https://github.com/HariSekhon/Python-DevOps-Tools repo which should be downloaded, run 'make' and add to $PATH
-    au BufNew,BufRead *.py   nmap ;l :w<CR>:!clear; pylint "%" \| headtail.py<CR>
-    au BufNew,BufRead *.pl   nmap ;l :w<CR>:!clear; perl -I . -tc "%"<CR>
-    au BufNew,BufRead *.rb   nmap ;l :w<CR>:!clear; ruby -c "%"<CR>
+    au BufNew,BufRead *.py   nmap ;l :w \| !clear; pylint "%" \| headtail.py <CR>
+    au BufNew,BufRead *.pl   nmap ;l :w \| !clear; perl -I . -tc "%" <CR>
+    au BufNew,BufRead *.rb   nmap ;l :w \| !clear; ruby -c "%" <CR>
     " :e reloads the file because autoread isn't working after gofmt in this case
-    au BufNew,BufRead *.go   nmap ;l :w<CR> :!gofmt -w "%" && go build "%"<CR>
+    au BufNew,BufRead *.go   nmap ;l :w \| !gofmt -w "%" && go build "%" <CR>
     " breaks waiting to see go build error
     " :e<CR>
 
@@ -366,69 +374,80 @@ if has('autocmd')
     "au FocusGained,BufEnter * :checktime
 
     " TODO: any better groovy/java CLI linters
-    au BufNew,BufRead *.groovy,*.gvy,*.gy,*.gsh  nmap ;l :w<CR>:!groovyc "%"; rm -f -- "%:p:h"/*.class <CR>
+    au BufNew,BufRead *.groovy,*.gvy,*.gy,*.gsh  nmap ;l :w \| !groovyc "%"; rm -f -- "%:p:h"/*.class <CR>
 
     " TODO: often these don't trigger on window switching between different file types
 
     " %:t = basename of file
-    au BufNew,BufRead .bash*,*.sh,*.ksh   nmap ;l :w<CR>:!clear; cd "%:p:h" && shellcheck -x -Calways "%:t" \| more -R<CR>
+    au BufNew,BufRead .bash*,*.sh,*.ksh   nmap ;l :w \| !clear; cd "%:p:h" && shellcheck -x -Calways "%:t" \| less -FR <CR>
     " for scripts that don't end in .sh like Google Cloud Shell's .customize_environment
-    au FileType sh                        nmap ;l :w<CR>:!clear; cd "%:p:h" && shellcheck -x -Calways "%:t" \| more -R<CR>
+    au FileType sh                        nmap ;l :w \| !clear; cd "%:p:h" && shellcheck -x -Calways "%:t" \| less -FR <CR>
 
-    au BufNewFile,BufRead .vimrc    nmap ;l :w<CR> :!clear<CR> :call LintVimrc() <CR>
+    " this is replaced by the global fallback mapping after first call
+    "au BufNewFile,BufRead .vimrc nnoremap ;l :w \| redraw! \| call LintVimrc()<CR>
+    au BufRead,BufNewFile .vimrc nnoremap <buffer> ;l :w \| redraw! \| call LintVimrc()<CR>
 
     " these tools are in the https://github.com/HariSekhon/DevOps-Python-tools & DevOps-Bash-tools repos which should be downloaded, run 'make' and add to $PATH
-    au BufNew,BufRead *.csv        nmap ;l :w<CR>:!clear; validate_csv.py "%"<CR>
-    au BufNew,BufRead *.cson       nmap ;l :w<CR>:!clear; validate_cson.py "%"<CR>
-    au BufNew,BufRead *.d2         nmap ;l :w<CR>:!clear; d2 fmt "%" <CR> :edit <CR> :1s/^# \!\//#\!\// <CR>
-    au BufNew,BufRead *.json       nmap ;l :w<CR>:!clear; validate_json.py "%"; echo; check_json.sh "%" \| more -R<CR>
-    au BufNew,BufRead *.ini        nmap ;l :w<CR>:!clear; validate_ini.py "%"; validate_ini2.py "%"<CR>
+    au BufNew,BufRead *.csv        nmap ;l :w \| !clear; validate_csv.py "%" <CR>
+    au BufNew,BufRead *.cson       nmap ;l :w \| !clear; validate_cson.py "%" <CR>
+    au BufNew,BufRead *.d2         nmap ;l :w \| !clear; d2 fmt "%" \| edit \| 1s/^# \!\//#\!\// <CR>
+    au BufNew,BufRead *.json       nmap ;l :w \| !clear; validate_json.py "%"; echo; check_json.sh "%" \| less -FR <CR>
+    au BufNew,BufRead *.ini        nmap ;l :w \| !clear; validate_ini.py "%"; validate_ini2.py "%" <CR>
     " doesn't work on ansible inventory anyway
-    "au FileType       ini          nmap ;l :w<CR>:!clear; validate_ini.py "%"; validate_ini2.py "%"<CR>
-    au BufNew,BufRead *.php        nmap ;l :w<CR>:!clear; php5 -l "%"<CR>
+    "au FileType       ini          nmap ;l :w \| !clear; validate_ini.py "%"; validate_ini2.py "%" <CR>
+    au BufNew,BufRead *.php        nmap ;l :w \| !clear; php5 -l "%" <CR>
     " this acts as both a validation as well as a fast way of being able to edit the plist
     " trying to convert to json results in an error "invalid object in plist for destination format"
-    au BufNew,BufRead *.plist      nmap ;l :w<CR>:!clear; plutil -convert xml1 "%" && echo PList OK<CR>
-    au BufNew,BufRead *.properties nmap ;l :w<CR>:!clear; validate_properties.py "%"<CR>
-    au BufNew,BufRead *.ldif       nmap ;l :w<CR>:!clear; validate_ldap_ldif.py "%"<CR>
-    au BufNew,BufRead *.md         nmap ;l :w<CR>:!clear; mdl "%" \| more -R<CR>
-    "au BufNew,BufRead *.sql        nmap ;l :w<CR>:!clear; TODO "%" \| more -R<CR>
-    au BufNew,BufRead *.scala      nmap ;l :w<CR>:!clear; scalastyle -c "$bash_tools/scalastyle_config.xml" "%" \| more -R<CR>
-    au BufNew,BufRead *.toml       nmap ;l :w<CR>:!clear; validate_toml.py "%"<CR>
-    au BufNew,BufRead *.xml        nmap ;l :w<CR>:!clear; validate_xml.py "%"<CR>
+    au BufNew,BufRead *.plist      nmap ;l :w \| !clear; plutil -convert xml1 "%" && echo PList OK <CR>
+    au BufNew,BufRead *.properties nmap ;l :w \| !clear; validate_properties.py "%" <CR>
+    au BufNew,BufRead *.ldif       nmap ;l :w \| !clear; validate_ldap_ldif.py "%" <CR>
+    au BufNew,BufRead *.lua        nmap ;l :w \| !clear; luacheck "%" <CR>
+    au BufNew,BufRead *.md         nmap ;l :w \| !clear; mdl "%" \| less -FR <CR>
+    "au BufNew,BufRead *.sql        nmap ;l :w \| !clear; TODO "%" \| less -FR <CR>
+    au BufNew,BufRead *.scala      nmap ;l :w \| !clear; scalastyle -c "$bash_tools/scalastyle_config.xml" "%" \| less -FR <CR>
+    au BufNew,BufRead *.toml       nmap ;l :w \| !clear; validate_toml.py "%" <CR>
+    au BufNew,BufRead *.xml        nmap ;l :w \| !clear; validate_xml.py "%" <CR>
     " TODO: needs fix to allow multiple inline yaml docs in 1 file
-    "au BufNew,BufRead *.yml,*.yaml nmap ;l :w<CR>:!clear; validate_yaml.py "%"<CR>
-    "au BufNew,BufRead *.yml,*.yaml nmap ;l :w<CR>:!clear; js-yaml "%" >/dev/null && echo YAML OK<CR>
-    au BufNew,BufRead *.yml,*.yaml,autoinstall-user-data nmap ;l :w<CR>:!clear; yamllint "%" && echo YAML OK<CR>
-    au BufNew,BufRead *.tf,*.tf.json,*.tfvars,*.tfvars.json nmap ;l :w<CR>:call TerraformValidate()<CR>
-    au BufNew,BufRead *.hcl                                 nmap ;l :w<CR>:call TerragruntValidate()<CR>
-    au BufNew,BufRead *.pkr.hcl,*.pkr.json nmap ;l :w<CR>:!packer init "%" && packer validate "%" && packer fmt -diff "%" <CR>
-    au BufNew,BufRead *.pkr.hcl,*.pkr.json nmap ;f :w<CR>:!packer fmt -diff "%" <CR>
+    "au BufNew,BufRead *.yml,*.yaml nmap ;l :w \| !clear; validate_yaml.py "%" <CR>
+    "au BufNew,BufRead *.yml,*.yaml nmap ;l :w \| !clear; js-yaml "%" >/dev/null && echo YAML OK<CR>
+    au BufNew,BufRead *.yml,*.yaml,autoinstall-user-data nmap ;l :w \| !clear; yamllint "%" && echo YAML OK<CR>
+    au BufNew,BufRead *.tf,*.tf.json,*.tfvars,*.tfvars.json nmap ;l :w \| call TerraformValidate()<CR>
+    au BufNew,BufRead *.hcl                                 nmap ;l :w \| call TerragruntValidate()<CR>
+    au BufNew,BufRead *.pkr.hcl,*.pkr.json nmap ;l :w \| !packer init "%" && packer validate "%" && packer fmt -diff "%" <CR>
+    au BufNew,BufRead *.pkr.hcl,*.pkr.json nmap ;f :w \| !packer fmt -diff "%" <CR>
 
     " more specific matches like pom.xml need to come after less specific matches like *.xml as last statement wins
-    au BufNew,BufRead *pom.xml*      nmap ;l :w<CR>:!clear; mvn validate -f "%" \| more -R<CR>
+    au BufNew,BufRead *pom.xml*      nmap ;l :w \| !clear; mvn validate -f "%" \| less -FR <CR>
     " check_makefiles.sh is in this repo which should be added to $PATH
-    au BufNew,BufRead *Makefile*     nmap ;l :w<CR>:!clear; check_makefiles.sh "%" \| more -R<CR>
-    au BufNew,BufRead *build.gradle* nmap ;l :w<CR>:!clear; gradle -b "%" -m clean build \| more -R<CR> | nmap ;r :!gradle -b "%" clean build<CR>
-    au BufNew,BufRead *build.sbt*    nmap ;l :w<CR>:!clear; cd "%:p:h" && echo q \| sbt reload "%" \| more -R<CR>
-    au BufNew,BufRead *.travis.yml*  nmap ;l :w<CR>:!clear; travis lint "%" \| more -R<CR>
-    au BufNew,BufRead serverless.yml nmap ;l :w<CR>:!clear; cd "%:p:h" && serverless print<CR>
-    au BufNew,BufRead *Dockerfile*   nmap ;l :w<CR>:!clear; hadolint "%" \| more -R<CR>
-    au BufNew,BufRead *docker-compose*.y*ml nmap ;l :w<CR>:!clear; docker-compose -f "%" config \| more -R<CR>
-    au BufNew,BufRead *Jenkinsfile*  nmap ;l :w<CR>:!clear; check_jenkinsfiles.sh "%" \| more -R<CR>
+    au BufNew,BufRead *Makefile*     nmap ;l :w \| !clear; check_makefiles.sh "%" \| less -FR <CR>
+    au BufNew,BufRead *build.gradle* nmap ;l :w \| !clear; gradle -b "%" -m clean build \| less -FR <CR> | nmap ;r :!gradle -b "%" clean build <CR>
+    au BufNew,BufRead *build.sbt*    nmap ;l :w \| !clear; cd "%:p:h" && echo q \| sbt reload "%" \| less -FR <CR>
+    au BufNew,BufRead *.travis.yml*  nmap ;l :w \| !clear; travis lint "%" \| less -FR <CR>
+    au BufNew,BufRead serverless.yml nmap ;l :w \| !clear; cd "%:p:h" && serverless print<CR>
+    au BufNew,BufRead Dockerfile*   nmap ;l :w \| !clear; hadolint "%" \| less -FR <CR>
+    "au BufNew,BufRead *docker-compose.y*ml   nmap ;r :w \| !clear; docker-compose -f "%" up<CR>
+    au BufNew,BufRead *docker-compose*.y*ml nmap ;l :w \| !clear; docker-compose -f "%" config \| less -FR <CR>
+    au BufNew,BufRead Jenkinsfile*  nmap ;l :w \| !clear; check_jenkinsfiles.sh "%" \| less -FR <CR>
     " vagrant validate doesn't take an -f argument so it must be an exact match in order to validate the right thing
     " otherwise you will get an error or false positive
-    au BufNew,BufRead Vagrantfile    nmap ;l :w<CR>:!clear; cd "%:p:h" && vagrant validate<CR>
-    au BufNew,BufRead *.circleci/config.yml*  nmap ;l :w<CR>:!clear; check_circleci_config.sh \| more -R<CR>
-    au BufNew,BufRead *circleci_config.yml*   nmap ;l :w<CR>:!clear; check_circleci_config.sh \| more -R<CR>
-    au BufNew,BufRead .pylintrc      nmap ;l :w<CR>:!clear; pylint ./*.py<CR>
+    au BufNew,BufRead Vagrantfile    nmap ;l :w \| !clear; cd "%:p:h" && vagrant validate<CR>
+    au BufNew,BufRead *.circleci/config.yml*  nmap ;l :w \| !clear; check_circleci_config.sh \| less -FR <CR>
+    au BufNew,BufRead *circleci_config.yml*   nmap ;l :w \| !clear; check_circleci_config.sh \| less -FR <CR>
+    au BufNew,BufRead .pylintrc      nmap ;l :w \| !clear; pylint ./*.py<CR>
+
+    "au BufNew,BufRead **/haproxy-configs/*.cfg   nmap ;r :w \| !clear; haproxy -f "%:p:h/10-global.cfg" -f "%:p:h/20-stats.cfg" -f "%" <CR>
+    au BufNew,BufRead **/haproxy-configs/*.cfg   nmap ;r :w \| !clear; "%:p:h/run.sh" "%" <CR>
+    au BufNew,BufRead **/haproxy-configs/*.cfg   nmap ;R :w \| !clear; DEBUG=1 "%:p:h/run.sh" "%" <CR>
+
+    "au BufNew,BufRead fastlane/Fastfile nmap ;r :w \| !clear; cd "%:p:h/.." && fastlane <CR>
 
     " if a "lint:" header is found then run lint.sh - this allows for more complex file types like Kubernetes yaml
     " which can then be linted for yaml as well as k8s schema
     " XXX: this is overriding all linting regardless of this expansion - instead use a different hotkey L for fast vs full linting
     "if filereadable(expand("%:p")) && match(readfile(expand("%:p")),"lint:")
-    "    au BufNew,BufRead *  nmap ;l :w<CR>:!clear; lint.sh "%" \| more -R<CR>
+    "    au BufNew,BufRead *  nmap ;l :w \| !clear; lint.sh "%" \| less -FR <CR>
     "endif
+  augroup END
 endif
 
 
@@ -451,7 +470,7 @@ if ! exists('*SourceVimrc')
         "execute "normal!" . &vim_tags
         ":! grep vim: expand("%") | sed 's/\#//'
         :echo "\n"
-        :echo "Currently set options:"
+        :echo 'Currently set options:'
         :echo "\n"
         :set ts sts sw et filetype
     endfunction
@@ -459,34 +478,49 @@ endif
 
 ":! bash -c 'vim -c "source %" -c "q" && echo "ViM basic lint validation passed" || "ViM basic lint validation failed"'
 "":! if type -P vint &>/dev/null; then vint "%"; fi
-function! LintVimrc()
-  let l:vimrc_path = expand('~/.vimrc')
+if !exists('g:__lintvimrc_defined')
+    let g:__lintvimrc_defined = 1
+    function! LintVimrc()
+      let l:vimrc_path = expand('~/.vimrc')
 
-  echo 'Sourcing ~/.vimrc file...'
-  try
-    execute 'source' l:vimrc_path
-    echohl InfoMsg | echo "Basic Validation Passed: .vimrc" | echohl None
-  catch
-    echohl ErrorMsg | echo "Basic Validate Failed: errors found in .vimrc" | echohl None
-    return
-  endtry
+      echo 'Sourcing ~/.vimrc file...'
+      try
+        execute 'source' l:vimrc_path
+        echohl InfoMsg
+        echo 'Basic Validation Passed: .vimrc'
+        echohl None
+      catch
+        echohl ErrorMsg
+        echo 'Basic Validate Failed while sourcing .vimrc'
+        echo v:exception
+        echo 'At: ' . v:throwpoint
+        echohl None
+        return
+      endtry
 
-  if executable('vint')
-    echo "Running vint..."
-    let l:vint_output = system('vint ' . l:vimrc_path)
-    if v:shell_error
-      echohl ErrorMsg | echo l:vint_output | echohl None
-      echohl ErrorMsg | echo "Vint Validation Failed: .vimrc" | echohl None
-    else
-      echohl InfoMsg | echo "Vint Validation Passed: .vimrc" | echohl None
-    endif
-  else
-    echohl WarningMsg | echo "Vint not found in PATH, skipping validation" | echohl None
-  endif
-endfunction
+      if executable('vint')
+        echo 'Running vint...'
+        let l:vint_output = system('vint ' . l:vimrc_path)
+        if v:shell_error
+          echohl ErrorMsg
+          echo l:vint_output
+          echo 'Vint Validation Failed: .vimrc'
+          echohl None
+        else
+          echohl InfoMsg
+          echo 'Vint Validation Passed: .vimrc'
+          echohl None
+        endif
+      else
+        echohl WarningMsg
+        echo 'Vint not found in PATH, skipping validation'
+        echohl None
+      endif
+    endfunction
+endif
 
 function! ToggleSyntax()
-    if exists("g:syntax_on")
+    if exists('g:syntax_on')
         syntax off
     else
         syntax enable
@@ -497,7 +531,7 @@ function! ToggleComments()
     :let comment_char = '#'
     :let comment_prefix = '^' . comment_char
     echo comment_prefix
-    if getline('.') =~ comment_prefix
+    if getline('.') =~# comment_prefix
         :s/^\=:comment_char//
     else
         :s/^/\=:comment_char/
@@ -537,22 +571,65 @@ endfunction
 function! ToggleDebug()
     if $DEBUG
         echo 'DEBUG disabled'
-        let $DEBUG=""
+        let $DEBUG=''
     else
         echo 'DEBUG enabled'
         let $DEBUG=1
     endif
 endfunction
 
-:command! Hr  :normal a# <ESC>76a=<ESC>a #<ESC>
-":function Hr()
-    ":s/^/# ============================================================================ #/
-    "if b:current_syntax eq "sql"
-    "    ::normal a-- <ESC>74a=<ESC>a --<ESC>
-    "else
-        ":normal a# <ESC>76a=<ESC>a #<ESC>
-    "endif
+":command! Hr  :normal a# <ESC>76a=<ESC>a #<ESC>
+":function! Hr()
+"    if b:current_syntax eq "sql"
+"        ::normal a-- <ESC>74a=<ESC>a --<ESC>
+"    else
+"        :normal a# <ESC>76a=<ESC>a #<ESC>
+"    endif
 ":endfunction
+function! Hr()
+    let width = 80
+
+    let dash_filetypes = [
+                \ 'sql', 'mysql', 'plsql',
+                \ 'lua',
+                \ 'haskell',
+                \ 'ada'
+                \ ]
+
+    let hash_filetypes = [
+                \ 'sh', 'bash', 'zsh',
+                \ 'python',
+                \ 'ruby',
+                \ 'perl',
+                \ 'make',
+                \ 'yaml', 'yml',
+                \ 'toml',
+                \ 'conf', 'cfg',
+                \ 'dockerfile'
+                \ ]
+
+    let ft = &filetype
+
+    if index(dash_filetypes, ft) >= 0
+        let start = '-- '
+        let end   = ' --'
+    elseif index(hash_filetypes, ft) >= 0
+        let start = '# '
+        let end   = ' #'
+    else
+        let start = '# '
+        let end   = ' #'
+    endif
+
+    let fill_len = width - strlen(start) - strlen(end)
+    if fill_len < 0
+        return
+    endif
+
+    let line = start . repeat('=', fill_len) . end
+
+    call append(line('.') - 1, line)
+endfunction
 
 ":function Br()
 ":call Hr()
@@ -639,9 +716,9 @@ endfunction
 
 function! WriteHelp()
     :w
-    if &filetype == 'go'
+    if &filetype ==# 'go'
         :! go run "%:p" --help 2>&1 | less
-    elseif expand('%:t') == 'Makefile'
+    elseif expand('%:t') ==# 'Makefile'
         :call Make('help')
     else
         :! "%:p" --help 2>&1 | less
@@ -650,36 +727,36 @@ endfunction
 
 function! WriteRun()
     :w
-    if &filetype == 'go'
+    if &filetype ==# 'go'
         " TODO: consider switching this to go build and then run the binary as
         " this gets stdout only at the end so things like welcome.go don't get
         " the transition effects when run like this
         :! eval go run "%:p" `$bash_tools/lib/args_extract.sh "%:p"` 2>&1 | less
     " doesn't work, probably due to no first class support so just get file extension
-    "elseif &filetype == 'tf'
-    elseif expand('%:e') == 'tf'
+    "elseif &filetype ==# 'tf'
+    elseif expand('%:e') ==# 'tf'
         ":call TerraformPlan()
         :call TerraformApply()
-    elseif expand('%:t') =~ '\.pkr\.\(hcl\|json\)'
+    elseif expand('%:t') =~# '\.pkr\.\(hcl\|json\)'
         :! packer init "%:p" && packer build "%:p"
-    elseif expand('%:t') == 'Makefile'
+    elseif expand('%:t') ==# 'Makefile'
         :call Make()
-    elseif expand('%:t') == 'Dockerfile'
+    elseif expand('%:t') ==# 'Dockerfile'
         " "%:p:h" is dirname
-        if filereadable(join([expand("%:p:h"), "Makefile"], "/"))
+        if filereadable(join([expand('%:p:h'), 'Makefile'], '/'))
             :call Make()
         else
-            :! docker build "%:p:h"
+            :! docker build '%:p:h'
         endif
-    elseif expand('%:t') == 'Gemfile'
-        " "%:p:h" is dirname
-        :! cd "%:p:h" && bundle install
+    elseif expand('%:t') ==# 'Gemfile'
+        " '%:p:h' is dirname
+        :! cd '%:p:h' && bundle install
     "elseif ! empty(matchstr(expand('%:t'), 'cloudbuild.*.yaml'))
-    elseif expand('%:t') =~ 'cloudbuild.*\.ya\?ml'
+    elseif expand('%:t') =~# 'cloudbuild.*\.ya\?ml'
         :call CloudBuild()
-    elseif expand('%:t') == 'kustomization.yaml'
+    elseif expand('%:t') ==# 'kustomization.yaml'
         :! bash -c 'cd "%:p:h" && kustomize build --enable-helm' 2>&1 | less
-    elseif expand('%:t') == '.envrc'
+    elseif expand('%:t') ==# '.envrc'
         :! bash -c 'cd "%:p:h" && direnv allow .' 2>&1 | less
     elseif executable('run.sh')
         " this only works for scripts
@@ -688,30 +765,30 @@ function! WriteRun()
         " instead of args headers
         :! "run.sh" "%:p" 2>&1 | less
     else
-        echo "unsupported file type and run.sh not found in PATH"
+        echo 'unsupported file type and run.sh not found in PATH'
     endif
 endfunction
 
 function! WriteRunVerbose()
     :let $VERBOSE=1
     :call WriteRun()
-    :let $VERBOSE=""
+    :let $VERBOSE=''
 endfunction
 
 function! WriteRunDebug()
     :let $DEBUG=1
     :call WriteRun()
-    :let $DEBUG=""
+    :let $DEBUG=''
 endfunction
 
 function! WriteRunLine()
     :w
-    if &filetype == 'go'
+    if &filetype ==# 'go'
         " TODO: consider switching this to go build and then run the binary as
         " this gets stdout only at the end so things like welcome.go don't get
         " the transition effects when run like this
         :.w ! sed 's/^[[:space:]]*\#// ; s|\$0|%:p| ; s|\${0\#\#\*\/}|%:p|' | xargs go run 2>&1 | less
-    elseif expand('%:t') == 'Makefile' " || expand('%:t') == 'Makefile.in'
+    elseif expand('%:t') ==# 'Makefile' " || expand('%:t') ==# 'Makefile.in'
         let target = split(getline('.'), ':')[0]
         call Make(target)
     else
@@ -739,12 +816,12 @@ function! TerraformValidate()
     " remove terraform plan copy-pasted removals for fast backporting
     :%s/^[[:space:]]*[-~][[:space:]]//e
     :%s/[[:space:]]->[[:space:]].*$//e
-    :!clear; bash -c 'if [ -d "%:p:h"/.terraform ]; then cd "%:p:h"; fi; { terraform fmt -diff; terraform validate; } | more -R'
+    :!clear; bash -c 'if [ -d "%:p:h"/.terraform ]; then cd "%:p:h"; fi; { terraform fmt -diff; terraform validate; } | less -FR'
 endfunction
 
 function! TerragruntValidate()
     :%s/[[:space:]]->[[:space:]].*$//e
-    :!clear; bash -c 'if [ -d "%:p:h"/.terraform ]; then cd "%:p:h"; fi; { terragrunt hclfmt --terragrunt-diff; terragrunt validate; } | more -R'
+    :!clear; bash -c 'if [ -d "%:p:h"/.terraform ]; then cd "%:p:h"; fi; { terragrunt hclfmt --terragrunt-diff; terragrunt validate; } | less -FR'
 endfunction
 
 function! TerraformPlan()

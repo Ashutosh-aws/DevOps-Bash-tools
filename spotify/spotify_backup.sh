@@ -51,23 +51,27 @@ section "Running Spotify Playlists Backup"
 
 spotify_token
 
+SECONDS=0
+
+mkdir -pv "$SPOTIFY_BACKUP_DIR/spotify"
+
 if [ $# -gt 0 ]; then
-    echo "Backing up selected playlist(s):"
+    timestamp "Backing up selected playlist(s):"
     echo
     for playlist in "$@"; do
+        printf '%s  ' "$(date '+%F %T')"
         "$srcdir/spotify_backup_playlist.sh" "$playlist"
     done
     exit 0
 fi
 
-mkdir -pv "$SPOTIFY_BACKUP_DIR/spotify"
-
-timestamp "Dumping list of Spotify playlists to $SPOTIFY_BACKUP_DIR/spotify/playlists.txt"
-"$srcdir/spotify_playlists.sh" > "$SPOTIFY_BACKUP_DIR/spotify/playlists.txt"
+"$srcdir/spotify_backup_artists_followed.sh"
 echo >&2
 
-timestamp "Stripping spotify playlist IDs from $SPOTIFY_BACKUP_DIR/spotify/playlists.txt => $SPOTIFY_BACKUP_DIR/playlists.txt"
-sed 's/^[^[:space:]]*[[:space:]]*//' "$SPOTIFY_BACKUP_DIR/spotify/playlists.txt" > "$SPOTIFY_BACKUP_DIR/playlists.txt"
+"$srcdir/spotify_backup_playlists_list.sh"
 echo >&2
 
 "$srcdir/spotify_backup_playlists.sh"
+echo >&2
+
+timestamp "Spotify Backup completed in $SECONDS seconds"

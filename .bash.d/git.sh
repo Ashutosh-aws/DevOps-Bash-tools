@@ -78,6 +78,7 @@ addf(){
     git ci -m "added $*"
 }
 alias gadd='git add'
+# beware covers up ImageMagick 'import' screenshot command (see HariSekhon/Knowledge-Base mac.md page)
 alias import=gitimport
 alias co=checkout
 alias commit="git commit"
@@ -107,10 +108,12 @@ alias tag="githg tag"
 alias tags='git tag'
 alias tagr='git_tag_release.sh'
 alias gitlogwc='git log --oneline | wc -l'
-alias um=updatemodules
+alias um=git_submodules_update.sh
 #type browse &>/dev/null || alias browse=gbrowse
 alias gbrowse=gitbrowse
 alias gb='gitbrowse'
+alias prbrowse='gh pr view --web'  # uses GitHub CLI
+alias prb=prbrowse
 #alias gh='gitbrowse github'  # clashes with GitHub CLI
 alias gl='gitbrowse gitlab'
 alias bb='gitbrowse bitbucket'
@@ -120,6 +123,8 @@ alias ghw='github_workflows'
 alias wf='cd $(git_root)/.github/workflows/'
 alias ggrep="git grep"
 alias gfr='git_foreach_repo.sh'
+alias gfrur='git_foreach_repo_update_readme.sh'
+alias gfrrra='git_foreach_repo_replace_readme_actions.sh'
 alias remotes='git remote -v'
 alias remote='remotes'
 # much quicker to just 'cd $github; f <pattern>'
@@ -157,15 +162,32 @@ alias staging="switchbranch staging"
 alias stage=staging
 alias dev="switchbranch dev"
 alias develop="switchbranch develop"
+alias grp="git_review_push.sh"
 
 # edit all GitHub READMEs
 alias readmes='$EDITOR $(git_foreach_repo.sh '"'"'echo $PWD/README.md'"')"
+alias readmesi='idea $(git_foreach_repo.sh '"'"'echo $PWD/README.md'"')"
 alias ureadmes='git_foreach_repo.sh '"'"'gitu README.md || :'"'"
 
 # equivalent of hg root
+# shellcheck disable=SC2120
 git_root(){
+    local path="${1:-.}"
+    local dir
+    if [ -f "$path" ]; then
+        dir="$(dirname "$path")"
+    elif [ -d "$path" ]; then
+        dir="$path"
+    else
+        echo "ERROR: arg passed is not a regular file or directory: $path" >&2
+        return 1
+    fi
+    pushd "$dir" &>/dev/null || return 1
     git rev-parse --show-toplevel
+    popd &>/dev/null || return 1
 }
+alias gitroot=git_root
+alias cdgitroot='cd "$(git_root)"'
 
 gitgc(){
     cd "$(git_root)" || :
@@ -223,10 +245,11 @@ gitbrowse(){
         fi
         return 1
     fi
+    if [ -n "$path" ]; then
+        path="$(git ls-files --full-name "$path")"
+    fi
     if [[ "$url_base" =~ github.com ]]; then
-        if [ -n "$path" ]; then
-            path="blob/master/$path"
-        else
+        if [ -z "$path" ]; then
             path+="#readme"
         fi
     else
@@ -253,6 +276,11 @@ gitbrowse(){
     fi
     url="$url_base"
     if [ -n "$path" ]; then
+        if [[ "$url_base" =~ github.com ]]; then
+            local default_branch
+            default_branch="$(git_default_branch)"
+            url+="/blob/$default_branch"
+        fi
         url+="/$path"
     fi
     browser "$url"
@@ -803,7 +831,7 @@ switchbranch(){
 
 gitrm(){
     git rm -- "$@" &&
-    git commit -m "removed $*" "$@"
+    git commit -m "removed $*" -- "$@"
 }
 
 gitrename(){
@@ -811,8 +839,15 @@ gitrename(){
         echo "usage: gitrename <original_filename> <new_filename>"
         return 1
     fi
+    if [ -f "$2" ]; then
+        local file_already_exists=1
+        mv -iv -- "$2" "$2.tmp"
+    fi
     git mv -- "$1" "$2" &&
     git commit -m "renamed $1 to $2" "$1" "$2"
+    if [ "${file_already_exists:-}" = 1 ]; then
+        mv -fv -- "$2.tmp" "$2"
+    fi
 }
 
 gitmv(){
@@ -820,8 +855,15 @@ gitmv(){
         echo "usage: gitmv <original_filename> <new_filename>"
         return 1
     fi
+    if [ -f "$2" ]; then
+        local file_already_exists=1
+        mv -iv -- "$2" "$2.tmp"
+    fi
     git mv -- "$1" "$2" &&
     git commit -m "moved $1 to $2" "$1" "$2"
+    if [ "${file_already_exists:-}" = 1 ]; then
+        mv -fv -- "$2.tmp" "$2"
+    fi
 }
 
 gitd(){
@@ -892,75 +934,6 @@ gitfind(){
     done | sort -u
 }
 
-# useful for smaller things:
-#
-# git submodule foreach --recursive 'git checkout master && git pull'
-#
-updatemodules(){
-    if isGit .; then
-        git pull --no-edit
-        #git submodule update --init --remote
-        for submodule in $(git submodule | awk '{print $2}'); do
-            if [ -d "$submodule" ] && ! [ -L "$submodule" ]; then
-                pushd "$submodule" || continue
-                git stash
-                git checkout "$(git_default_branch)"
-                git pull --no-edit
-                git submodule update
-                # shellcheck disable=SC2164
-                popd
-            fi
-        done
-        echo
-        for submodule in $(git submodule | awk '{print $2}'); do
-            if [ -d "$submodule" ] && ! [ -L "$submodule" ] && ! git status "$submodule" | grep -q nothing; then
-                git commit -m "updated $submodule" "$submodule" || break
-            fi
-        done &&
-        make updatem ||
-        echo FAILED
-        echo
-        for submodule in $(git submodule | awk '{print $2}'); do
-            if [ -d "$submodule" ] && ! [ -L "$submodule" ]; then
-                pushd "$submodule" || continue
-                git stash pop
-                # shellcheck disable=SC2164
-                popd
-            fi
-        done
-    else
-        echo "Not a Git repository! "
-        return 1
-    fi
-}
-
-upl(){
-    local repos="pylib pytools lib tools bash-tools nagios-plugins npk"
-    # pull all repos first so can handle merge requests if needed
-    for repo in $repos; do
-        echo
-        echo "* Pulling latest repo changes:  $repo"
-        echo
-        pushd "$github/$repo" &&
-        git pull --no-edit &&
-        popd &&
-        hr || return 1
-    done
-    echo
-    echo "UNATTEND FROM HERE"
-    echo
-    for repo in $repos; do
-        echo
-        echo "* Performing latest submodule updates:  $repo"
-        echo
-        pushd "$github/$repo" &&
-        ! updatemodules 2>&1 | tee /dev/stderr | grep -e ERROR -e FAIL &&
-        git push &&
-        popd &&
-        hr || return 1
-    done
-}
-
 #stagemerge(){
 #    if isGit "."; then
 #        git checkout prod    && git pull &&
@@ -1025,8 +998,8 @@ git_rm_untracked(){
             # you must set 'git config --global core.quotePath false' for this to work properly
             #
             # this doesn't help because you are still stuck with \xxx chars throughout
-            #filename="${filename#\"}"
-            #filename="${filename%\"}"
+            filename="${filename#\"}"
+            filename="${filename%\"}"
             rm -v -- "$filename" || break
         done
     done

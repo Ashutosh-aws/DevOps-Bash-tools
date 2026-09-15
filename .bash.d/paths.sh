@@ -93,6 +93,13 @@ add_PATH(){
 #    done
 #}
 
+# need newer Homebrew curl for --cookies-from-browser functionality
+# Homebrew build wasn't compiled with it anyway - see curl_with_cookies.sh script for a more generic workaround
+# that works with any version of curl
+#if [ -d /opt/homebrew/opt/curl/bin ]; then
+#    PATH="/opt/homebrew/opt/curl/bin:$PATH"
+#fi
+
 add_PATH "/bin"
 add_PATH "/usr/bin"
 add_PATH "/sbin"
@@ -103,6 +110,8 @@ add_PATH "/usr/local/opt/python/libexec/bin"  # Mac brew installed Python, must 
 add_PATH "/opt/homebrew/bin/"  # on new M1 Macs
 add_PATH "$bash_tools"
 add_PATH ~/bin
+add_PATH ~/.local/bin
+add_PATH ~/venv/bin
 while read -r x; do
     # much less noisy to just just find the right dirs instead of testing lots of files
     #[ -d "$x" ] || continue

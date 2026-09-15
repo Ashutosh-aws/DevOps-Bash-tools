@@ -53,6 +53,8 @@ playlists (eg. TODO playlists dumped by spotify_backup*.sh / spotify_playlist_tr
 
 Caveat: won't check the tracks are already in the playlist, will simply fire batch delete API calls and count the number of tracks requested to be removed, so repeated runs of the same URIs fed in will give the same results, which might mislead you to thinking they weren't remove the first time around, when they've already been removed
 
+If you set environment variable SPOTIFY_RESOLVE_TRACKS_DELETED it'll resolve and print the names of the tracks its deleting for debugging purposes (this is more expensive as it requires one extra API call per 50 tracks, tripling the number of API calls required)
+
 
 $usage_playlist_help
 
@@ -96,6 +98,15 @@ delete_from_playlist(){
     local uri_array=""
     local track_position
     local id
+    if [ -n "${SPOTIFY_RESOLVE_TRACKS_DELETED:-}" ]; then
+        for id in "$@"; do
+            if [[ "$id" =~ ^[[:digit:]]+: ]]; then
+                id="${id#*:}"
+            fi
+            echo "spotify:track:$id"
+        done |
+        "$srcdir/spotify_uri_to_name.sh"
+    fi
     for id in "$@"; do
         if [[ "$id" =~ ^[[:digit:]]+: ]]; then
             # extract first column for track position
@@ -138,6 +149,8 @@ delete_from_playlist(){
     #if [ "$snapshot_id" = null ]; then
     #    die "Spotify API returned snapshot_id '$snapshot_id', please investigate with DEBUG=1 mode"
     #fi
+    # slow down a bit to try to reduce hitting Spotify API rate limits and getting 429 errors on large playlists
+    sleep 1
 }
 
 delete_URIs_from_playlist(){
@@ -179,7 +192,6 @@ delete_URIs_from_playlist(){
 
         if [ "${#ids[@]}" -eq 100 ]; then
             delete_from_playlist "${ids[@]}"
-            sleep 1
             ids=()
         fi
     done
@@ -189,8 +201,9 @@ delete_URIs_from_playlist(){
     fi
 }
 
-for filename in "${@:-/dev/stdin}"; do
-    delete_URIs_from_playlist < "$filename"
-done
+delete_URIs_from_playlist < <(
+    cat "${@:-/dev/stdin}" |
+    sort -u
+)
 
 timestamp "$count tracks deleted from playlist '$playlist_name'"

@@ -27,6 +27,16 @@ bash_tools="${bash_tools:-$(dirname "${BASH_SOURCE[0]}")/..}"
 
 is_mac || return
 
+export HOMEBREW_DISPLAY_INSTALL_TIMES=1
+#export HOMEBREW_DEBUG=1
+#export HOMEBREW_CLEANUP_MAX_AGE_DAYS=30  # default: 120
+
+# Stops Mac calling update_terminal_cwd() which causes a tonne of noise during set -x tracing
+export INSIDE_EMACS=1
+
+export icloud="$HOME/Library/Mobile Documents/com~apple~CloudDocs"
+alias icloud="cd '$icloud'"
+
 alias osash="osascript -i"
 alias osashell=osash
 
@@ -50,6 +60,44 @@ if ! type tac &>/dev/null; then
     }
 fi
 
+# used for Shazaming while on headphones - see:
+#
+#   https://github.com/HariSekhon/Knowledge-Base/blob/master/audio.md#shazam-songs-while-using-headphones-on-mac
+#
+# Switches to Multi-Output Device which should already be configured as above and contain your headphones and BlackHole 2ch
+#
+#alias mshazam='SwitchAudioSource -s "Multi-Output Device"; open -a Shazam'
+#alias msound='SwitchAudioSource -s "Multi-Output Device"'
+unalias msound 2>/dev/null || :
+msound(){
+    # because if you have 2 multi-output devices eg.
+    #
+    # - one using AirPods + Blackhole
+    # - another using Speakers + Blackhole
+    #
+    # then Mac automatically renames "Multi-Output Device" to "Multi-Output Device 1",
+    # even if the other multi-output device has already been differentiated, it refuses to let you set
+    # it back to the default name, so just determine what the first one is called and use that
+    #
+    local multi_output_device
+    multi_output_device="$(SwitchAudioSource -a | grep -m1 '^Multi-Output Device')"
+    #echo "Found first multi-output device: $multi_output_device"
+    echo "Using first found multi-output device"
+    SwitchAudioSource -s "$multi_output_device"
+}
+
+alias restartsound='sudo killall coreaudiod'
+
+alias mshazam='msound; open -a Shazam'
+
+vol(){
+    if [ $# -ne 1 ]; then
+        echo "usage: vol <num>"
+        return 1
+    fi
+    osascript -e "set volume output volume $1"
+}
+
 # put in inputrc for readline
 #set completion-ignore-case on
 
@@ -59,8 +107,29 @@ fi
 #export TERM=linux
 #ulimit -u 512
 
+dhcprenew(){
+    local interface="${1:-en0}"
+    watch -q 1 ifconfig "$interface"
+    sudo scutil <<< "add State:/Network/Interface/$interface/RefreshConfiguration temporary"
+    watch ifconfig "$interface"
+}
+
+dhcpdiscover(){
+    local interface="${1:-en0}"
+    watch -q 1 ifconfig "$interface"
+    sudo ipconfig set "$interface" BOOTP
+    sudo ipconfig set "$interface" DHCP
+    watch ifconfig "$interface"
+}
+
 macsleep(){
     sudo pmset sleepnow
+}
+
+nosleep(){
+    echo "Running: caffeinate -s $*"
+    echo "(works even if you close the Macbook lid but will still sleep on battery power)"
+    caffeinate -s "$@"
 }
 
 silence_startup(){
@@ -94,12 +163,13 @@ showhiddenfiles(){
 
 alias reloadprefs='killall -u $USER cfprefsd'
 alias strace="dtruss -f"
+alias usbinfo='system_profiler SPUSBDataType'
 alias vlc="/Applications/VLC.app/Contents/MacOS/VLC"
 
 
 # clear paste buffer
 clpb(){
-    copy_to_clipboard < /dev/null
+    copy_to_clipboard.sh < /dev/null
 }
 
 macmac(){

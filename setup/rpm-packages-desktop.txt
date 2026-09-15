@@ -146,6 +146,7 @@ pastebinit
 pdfgrep
 PEAR-PHP_Shell
 perl-doc
+perl-HTML-Parser
 perl-Image-ExifTool
 pidgin
 pidgin-sipe
@@ -165,6 +166,7 @@ rancid
 rancid-cgi
 rancid-core
 rancid-utils
+rbenv
 rdesktop
 router-audit-tool
 rpm-build
@@ -188,6 +190,7 @@ tftp
 tftpd
 tilda
 toilet
+tokei  # lines of code counter
 tomboy
 tshark
 virt-manager
@@ -203,6 +206,7 @@ x86info
 xclip
 xdotool
 xkbset
+xmlstartlet
 xosview
 xprobe
 xsel

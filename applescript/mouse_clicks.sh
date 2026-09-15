@@ -41,6 +41,8 @@ help_usage "$@"
 
 min_args 1 "$@"
 
+mac_only
+
 num="$1"
 start_delay="${START_DELAY:-5}"
 sleep_secs="${SLEEP_SECS:-1}"
@@ -73,9 +75,9 @@ if [ -n "${coordinates:-}" ]; then
     done
 fi
 
-timestamp "waiting for $start_delay secs before starting"
+timestamp "Waiting for $start_delay secs before starting"
 sleep "$start_delay"
-timestamp "starting $num mouse clicks"
+timestamp "Starting $num mouse clicks every $sleep_secs"
 echo
 
 for ((i=1; ; i++)); do
@@ -88,14 +90,14 @@ for ((i=1; ; i++)); do
         for coordinate in "${coordinates[@]}"; do
             x="${coordinate%,*}"
             y="${coordinate#*,}"
-            timestamp "mouse click $i/$num at $x , $y"
+            timestamp "Mouse click $i/$num at $x , $y"
             # tool no longer available online
             #MouseTools -leftClick -x "$x" -y "$y"
             cliclick "c:$x,$y"
             sleep "$sleep_secs.$RANDOM"
         done
     else
-        timestamp "mouse click $i/$num at current mouse location"
+        timestamp "Mouse click $i/$num at current mouse location"
         #MouseTools -leftClick
         cliclick "c:."
         sleep "$sleep_secs.$RANDOM"  # add $RANDOM up to 1 second jitter to make it harder to spot that this is perfectly automated clicking

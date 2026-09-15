@@ -61,8 +61,9 @@ google-cloud-sdk-cbt
 google-cloud-sdk-cloud-build-local
 google-cloud-sdk-gke-gcloud-auth-plugin
 google-cloud-sdk-pubsub-emulator
-kubectl
 "
+# conflicts with kubernetes-client package
+#kubectl
 
 sudo=sudo
 [ $EUID -eq 0 ] && sudo=""
@@ -85,15 +86,18 @@ EOF
     yum install -y $yum_optional_packages
 # https://cloud.google.com/sdk/docs/downloads-apt-get
 elif type -P apt-get &>/dev/null; then
-    echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | $sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
-    $sudo apt-get install -y apt-transport-https ca-certificates
+    google_cloud_sdk_source="deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main"
+    grep -Fq "$google_cloud_sdk_source" /etc/apt/sources.list.d/google-cloud-sdk.list 2>/dev/null ||
+    $sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list <<< "$google_cloud_sdk_source"
+    opts="-o DPkg::Lock::Timeout=1200"
+    $sudo apt-get install -y $opts apt-transport-https ca-certificates gnupg
     curl -sS https://packages.cloud.google.com/apt/doc/apt-key.gpg |
         $sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
-    $sudo apt-get update
-    $sudo apt-get install -y google-cloud-sdk #=$apt_version
+    $sudo apt-get update $opts
+    $sudo apt-get install -y $opts google-cloud-sdk #=$apt_version
     # want splitting to single line
     # shellcheck disable=SC2086
-    $sudo apt-get install -y $apt_optional_packages
+    $sudo apt-get install -y $opts $apt_optional_packages
 elif [[ "$(uname -s)" =~ Darwin|Linux ]]; then
     # https://cloud.google.com/sdk/docs/downloads-interactive
     install_script="$(mktemp -t gcloud_installer.sh.XXXXXX)"

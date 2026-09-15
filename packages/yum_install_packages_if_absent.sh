@@ -9,7 +9,8 @@
 #
 #  License: see accompanying Hari Sekhon LICENSE file
 #
-#  If you're using my code you're welcome to connect with me on LinkedIn and optionally send me feedback to help steer this or other code I publish
+#  If you're using my code you're welcome to connect with me on LinkedIn
+#  and optionally send me feedback to help steer this or other code I publish
 #
 #  https://www.linkedin.com/in/HariSekhon
 #
@@ -38,6 +39,10 @@ Tested on CentOS
 usage_args="<packages>"
 
 help_usage "$@"
+
+# get xargs if it's not installed since we call it below in the shell pipeline
+rpm -q findutils &>/dev/null ||
+yum install -y findutils
 
 process_package_args "$@" |
 "$srcdir/rpms_filter_not_installed.sh" |

@@ -42,7 +42,7 @@ $usage_auth_help
 
 # used by usage() in lib/utils.sh
 # shellcheck disable=SC2034
-usage_args="<playlist> [<curl_options>]"
+usage_args="<playlist_id> [<curl_options>]"
 
 help_usage "$@"
 
@@ -51,15 +51,20 @@ playlist_id_to_name(){
     shift || :
     # if it's not a playlist id, scan all playlists and take the ID of the first matching playlist name
     if is_spotify_playlist_id "$playlist_id"; then
-        playlist_name="$("$srcdir/spotify_api.sh" "/v1/playlists/$playlist_id" "$@" |
-                    jq -r '.name' || :)"
+        playlist_name="$(
+            "$srcdir/spotify_api.sh" "/v1/playlists/$playlist_id" "$@" |
+            jq -r '.name' |
+            sed 's/[[:space:]]*$//' || :
+        )"
         # it turns out a playlist name can be blank :-/
         #if is_blank "$playlist_name" || [ "$playlist_name" = null ]; then
         if is_blank "$playlist_name"; then
             echo "$playlist_id"
+            die "Error: playlist name is blank for playlist ID: $playlist_id"
+        elif [ "$playlist_name" = "$playlist_id" ]; then
+            die "Error: playlist name resolved to the same as ID - this might be an edge case / bug and requires investigation"
         elif [ "$playlist_name" = null ]; then
-            echo "Error: failed to find playlist name matching ID '$playlist_id'" >&2
-            exit 1
+            die "Error: failed to find playlist name matching ID '$playlist_id'"
         fi
         echo "$playlist_name"
     else

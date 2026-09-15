@@ -36,13 +36,14 @@ configs/.Codefresh/cli-config/config.yaml
 configs/.config/flake8
 configs/.config/htop/htoprc
 configs/.config/pycodestyle
+configs/.config/terminalizer/config.yml
 configs/.config/yamllint/config
-configs/.customize_environment
-configs/.editorconfig
 configs/.gemrc
 configs/.git-templates/git-secrets/hooks/*
 configs/.grype.yaml
+#configs/.hammerspoon  # moved to its own repo
 configs/.inputrc
+configs/.luacheckrc
 configs/.my.cnf
 configs/.perlcriticrc
 configs/.perlcritic_forbidden_modules
@@ -52,9 +53,13 @@ configs/.sawsrc
 configs/.screenrc
 configs/.sdkman/etc/config
 configs/.sqliterc
+configs/.terraformrc
+configs/.tfdocs.d/.terraform-docs.yml
 configs/.tmux.conf
 configs/.toprc
 configs/.vimrc
+#configs/.wakatime.cfg  # copied because Wakatime IntelliJ plugin doesn't accept env var and insists on writing to this file and don't want to accidentally commit it
 configs/.Xdefaults
 configs/.Xmodmap
+gcp/.customize_environment
 scalastyle_config.xml

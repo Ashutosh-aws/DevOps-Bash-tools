@@ -28,17 +28,21 @@
 #
 
 HariSekhon:harisekhon
-Knowledge-Base:knowledge
+#Knowledge-Base:knowledge
+Environments:environments
+TamperMonkey:tampermonkey
+Hammerspoon:hammerspoon
+MPV-Scripts:mpvscripts
 # order repos by dependent submodule repos first
-GitHub-Actions:github-actions
 GitHub-Actions-Contexts:contexts
-Jenkins:jenkins
-SQL-scripts:sql
 SQL-keywords:sql-keywords
+GitHub-Actions:github-actions
+Jenkins:jenkins
+Vagrant:vag
+SQL-scripts:sql
 Kubernetes-configs:k8s
 Terraform:terraform
-Packer-templates:pack
-Vagrant-templates:vag
+Packer:pack
 Templates:templates
 TeamCity-CI:teamcity
 DevOps-Bash-tools:bash-tools
@@ -47,7 +51,9 @@ DevOps-Bash-tools:bash-tools
 lib
 pylib
 lib-java:libj
+Nagios-Plugin-Kafka:nagios-plugin-kafka
 
+Ansible:ansible
 Diagrams-as-Code:diagrams
 DevOps-Golang-tools:go-tools
 DevOps-Perl-tools:perl-tools
@@ -61,7 +67,4 @@ HAProxy-configs:haproxy-configs
 
 Dockerfiles
 
-Nagios-Plugin-Kafka:nagios-plugin-kafka
-
-# biggest repo last
 Nagios-Plugins:nagios-plugins

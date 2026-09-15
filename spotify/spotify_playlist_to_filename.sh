@@ -25,6 +25,8 @@ srcdir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC2034
 usage_description="
 Normalizes a Spotify playlist name provided as arg(s) or stdin to a valid filename
+
+Replaces invalid / dangerous characters with underscores
 "
 
 # used by usage() in lib/utils.sh
@@ -33,19 +35,38 @@ usage_args="<playlist_name>"
 
 help_usage "$@"
 
-normalize(){
+#normalize(){
+#    # replace forward slash with unicode version so we can store playlist files that look like the real thing
+#    # but avoid the breakage caused by directory separator
+#    tr '/' '∕'
+#    #tr '/[:space:]' '_'
+#    # requires Perl 5.10+
+#    #perl -pe 's/[\h\/]/_/g'
+#    #perl -pe 's/!//g'
+#    #perl -pe 's/[^\w\v-]/_/g'
+#}
+
+sanitize_filename() {
     # replace forward slash with unicode version so we can store playlist files that look like the real thing
     # but avoid the breakage caused by directory separator
-    tr '/' '∕'
-    #tr '/[:space:]' '_'
-    # requires Perl 5.10+
-    #perl -pe 's/[\h\/]/_/g'
-    #perl -pe 's/!//g'
-    #perl -pe 's/[^\w\v-]/_/g'
+    tr '/' '∕' |
+    perl -CS -Mutf8 -p -e '
+        s{[\x00-\x09\x0B-\x1F\x7F]}{_}g;  # control chars except \n
+        s{[^\p{Print}\p{Emoji}\n]}{_}g;   # non-printable, non-emoji, keep \n
+        s/\s+$/\n/;                       # no trailing spaces, happens in emoji suffix playlists
+    ' |
+    if is_windows; then
+        perl -CS -Mutf8 -p -e '
+            s{[\\/:*?"<>|]}{_}g;  # Windows-invalid filename characters
+            s/[\s.]+$/\n/;        # trailing space or dot not valid on Windows
+        '
+    else
+        cat
+    fi
 }
 
 if not_blank "$*"; then
-    normalize <<< "$*"
+    sanitize_filename <<< "$*"
 else
-    normalize  # from stdin
+    sanitize_filename  # from stdin
 fi

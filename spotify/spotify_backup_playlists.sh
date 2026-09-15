@@ -41,7 +41,12 @@ usage_args="<spotify_user> [<curl_options>]"
 
 help_usage "$@"
 
+# used by spotify_user function below
+# shellcheck disable=SC2034
 spotify_user="${1:-${SPOTIFY_USER:-}}"
+
+# avoids spotify_backup_playlist.sh having to resolve this itself each time
+export SPOTIFY_USER="$spotify_user"
 
 shift || :
 
@@ -69,8 +74,21 @@ export SPOTIFY_BACKUP_DIR="$backup_dir"
 export SPOTIFY_FOREACH_NO_PRINT_PLAYLIST_NAME=1
 export SPOTIFY_FOREACH_NO_NEWLINE=1
 
-"$srcdir"/spotify_foreach_playlist.sh "$srcdir/spotify_backup_playlist.sh '{playlist_id}'" "$spotify_user" "$@"
-if [ -n "${SPOTIFY_PRIVATE:-}" ]; then
+playlist_file="$PWD/.spotify_metadata/playlists.txt"
+
+if [ -f "$playlist_file" ] &&
+    file_newer_than_mins 5 "$playlist_file"; then
+    timestamp "Spotify playlist file '$playlist_file' was updated < 5 minutes ago, using it for playlist name <=> ID lookups"
+    while read -r playlist_id snapshot_id playlist_name; do
+        "$srcdir/spotify_backup_playlist.sh" "$playlist_name" "$playlist_id" "$snapshot_id" "$@"
+    done < "$playlist_file"
+else
+    "$srcdir"/spotify_foreach_playlist.sh "
+        '$srcdir/spotify_backup_playlist.sh' \"{playlist_name}\" '{playlist_id}' '{snapshot_id}'
+    " "$spotify_user" "$@"
+fi
+if [ -n "${SPOTIFY_PRIVATE:-}" ] &&
+   is_blank "${NO_LIKED_PLAYLIST:-}"; then
     "$srcdir/spotify_backup_playlist.sh" liked "$@"
 fi
 echo >&2

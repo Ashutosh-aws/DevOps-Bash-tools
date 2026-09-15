@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #  vim:ts=4:sts=4:sw=4:et
+#  args: google.com
 #
 #  Author: Hari Sekhon
 #  Date: 2020-10-06 18:59:32 +0100 (Tue, 06 Oct 2020)
@@ -22,13 +23,13 @@ srcdir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # shellcheck disable=SC2034,SC2154
 usage_description="
-Opens the URL given as an argument or standard input.
-
-If the given arg is a file, then opens the first URL found in the file
+Opens the URL given as an arg, or first URL from standard input or a given file
 
 Used by .vimrc to instantly open a URL on the given line in the editor
 
-Very useful for quickly referencing inline documentation links in config files and templates such as those found at https://github.com/HariSekhon/Templates
+Very useful for quickly referencing inline documentation links found throughout my GitHub repos
+
+Respects \$BROWER environment variable if set, otherwise tries to infer the mechanism on macOS or Linux
 "
 
 # used by usage() in lib/utils.sh
@@ -39,35 +40,37 @@ help_usage "$@"
 
 max_args 1 "$@"
 
-arg="${1:-}"
-
 browse(){
+    # some likely catchall browsers on Linux
+    local browsers=(
+        xdg-open
+        sensible-browser
+        x-www-browser
+        gnome-open
+    )
     local url="$1"
-    if is_mac; then
+    if [ -n "${BROWSER:-}" ]; then
+        "$BROWSER" "$url"
+    elif is_mac; then
         open "$url"
     else  # assume Linux
-        if type -P xdg-open &>/dev/null; then
-            xdg-open "$url" &
-        elif type -P gnome-open &>/dev/null; then
-            gnome-open "$url" &
-        else
-            die "ERROR: xdg-open and gnome-open not found"
-        fi
+        for browser in "${browsers[@]}"; do
+            if type -P "$browser" &>/dev/null; then
+                "$browser" "$url" &
+                return 0
+            fi
+        done
+        die "ERROR: none of the following browsers were found in the \$PATH:
+
+$(for browser in ${BROWSER:+"$BROWSER"} "${browsers[@]}"; do echo "$browser"; done)
+
+Could not open the URL: $url
+"
     fi
 }
+export -f browse
 
-if [ $# -eq 0 ]; then
-    cat
-elif [ -f "$arg" ]; then
-    cat "$arg"
-else
-    echo "$arg"
-fi |
-{
-# [] break the regex match, even when escaped \[\]
-grep -Eom 1 'https?://[[:alnum:]./?&!$#%@*;+~_=-]+' "$@" ||
-    die "No URLs found"
-} |
+"$srcdir/urlextract.sh" "$@" |
 # head -n1 because grep -m 1 can't be trusted and sometimes outputs more matches on subsequent lines
 head -n1 |
 while read -r url; do

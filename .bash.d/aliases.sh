@@ -91,7 +91,9 @@ alias grep='grep --color=auto'
 #alias envg="env | grep -i"
 alias dec="decomment.sh"
 
+alias dns='cat /etc/resolv.conf'
 alias hosts='sudo $EDITOR /etc/hosts'
+alias repos='$EDITOR $bash_tools/setup/repos.txt'
 
 alias path="echo \$PATH | tr ':' '\\n' | less"
 alias paths=path
@@ -120,6 +122,10 @@ alias newshell='exec bash'
 alias rr='newshell'
 
 alias record=script
+
+alias dl="BACKGROUND_VIDEO=1 youtube_download_video.sh"
+#alias vidopen="vidopen.sh"
+#alias vidopenplay="PLAY_VIDEO=1 vidopen.sh"
 
 alias l33tmode='welcome; retmode=on; echo l33tm0de on'
 alias leetmode=l33tmode
@@ -151,7 +157,7 @@ alias lR='ls -lRh $LS_OPTIONS'
 lw(){ ls -lh $LS_OPTIONS "$(type -P "$@")"; }
 
 # shellcheck disable=SC2086,SC2012
-lll(){ ls -l $LS_OPTIONS "$(readlink -f "${@:-.}")" | less -R; }
+lll(){ ls -l "$(readlink -f "${@:-.}")" | less -R; }
 
 alias cd..='cd ..'
 alias ..='cd ..'
@@ -249,6 +255,11 @@ doc_alias(){
     local prefix="${2:-d}"
     [ -f "$docpath" ] || return 1
     docfile="${docpath##*/}"
+    if ! [[ "$docfile" =~ \.(txt|md)$ ]]; then
+        if [[ "$docfile" =~ \. ]]; then
+            return 1
+        fi
+    fi
     # slows down shell creation, will drain battery
 #    if [ -L "$docpath" ]; then
 #        # brew install coreutils to get greadlink since Mac doesn't have readlink -f
@@ -276,6 +287,7 @@ for x in ~/docs/* "$github"/docs/* "$bitbucket"/docs/*; do
     doc_alias "$x" || :
 done
 
+alias know="knowledge"
 for x in ~/knowledge/* "$github"/knowledge/* "$bitbucket"/knowledge/*; do
     doc_alias "$x" k || :
 done
@@ -323,7 +335,7 @@ alias etc='cd $etc'
 
 alias distro='cat /etc/*release /etc/*version 2>/dev/null'
 alias trace=traceroute
-alias t='$EDITOR ~/tmp'
+alias t='$EDITOR ~/temp-notes.txt'
 # causes more problems than it solves on a slow machine missing the prompt
 #alias y=yes
 alias t2='$EDITOR ~/tmp2'
@@ -352,6 +364,9 @@ export desktop=~/Desktop
 export desk="$desktop"
 alias desktop='cd "$desktop"'
 alias desk=desktop
+
+export screenshots=~/Desktops/Screenshots
+alias screenshots='cd "$screenshots"'
 
 export bin=~/bin
 alias bin="cd $bin"
@@ -390,3 +405,6 @@ alias fluxmenu='$EDITOR ~/.fluxbox/mymenu'
 alias fme=fluxmenu
 alias mymenu=fluxmenu
 alias menu=mymenu
+
+# trigger script in ~/.config/mpv/scripts/delete-on-eof.lua to delete a video once it has been completely watched
+alias mpvd="MPV_DELETE_ON_EOF=1 mpv --speed=2"

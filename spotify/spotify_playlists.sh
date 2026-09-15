@@ -8,7 +8,8 @@
 #
 #  License: see accompanying Hari Sekhon LICENSE file
 #
-#  If you're using my code you're welcome to connect with me on LinkedIn and optionally send me feedback to help steer this or other code I publish
+#  If you're using my code you're welcome to connect with me on LinkedIn
+#  and optionally send me feedback to help steer this or other code I publish
 #
 #  https://www.linkedin.com/in/HariSekhon
 #
@@ -30,14 +31,24 @@ Output Format:
 
 <playlist_id>   <playlist_name>
 
-By default returns only public playlists owned by given Spotify user
+If SPOTIFY_PLAYLIST_SNAPSHOT_ID=1 environment variable is set, then returns a 2nd column with the snapshot ID.
+This addition was made as an optimization to avoid having to do an extra API call per playlist when running
+spotify_backup_playlist.sh / spotify_backup_playlists.sh
 
-\$SPOTIFY_USER must be defined in environment or given as first arg unless \$SPOTIFY_PRIVATE=1 is set, in which case it's inferred from the auth token
+\$SPOTIFY_USER must be defined in environment or given as first arg unless \$SPOTIFY_PRIVATE=1 is set,
+in which case it's inferred from the auth token
 
-Gets public playlists by default
-To also get private playlists - export SPOTIFY_PRIVATE=1
-To get only private playlists - export SPOTIFY_PRIVATE_ONLY=1
-To get only public playlists  - export SPOTIFY_PUBLIC_ONLY=1
+By default the Spotify API returns only public playlists owned by given Spotify user and that have been explicitly
+added to their profile
+
+This is counter-intuitive
+
+To get the public playlists not explicitly added to a user's profile you need to use private API access mode (SPOTIFY_PRIVATE=1)
+
+To get all playlists including private playlists - export SPOTIFY_PRIVATE=1
+To get only private playlists                    - export SPOTIFY_PRIVATE_ONLY=1 (implicitly adds SPOTIFY_PRIVATE=1)
+To get only public playlists                     - export SPOTIFY_PUBLIC_ONLY=1
+To get all public playlists including those not added to profile - export SPOTIFY_PRIVATE=1 SPOTIFY_PUBLIC_ONLY=1
 
 To also get followed playlists - export SPOTIFY_PLAYLISTS_FOLLOWED=1
 To get only followed playlists - export SPOTIFY_PLAYLISTS_FOLLOWED_ONLY=1
@@ -58,6 +69,16 @@ fi
 if [ -n "${SPOTIFY_PRIVATE_ONLY:-}" ]; then
     export SPOTIFY_PRIVATE=1
 fi
+
+if not_blank "${SPOTIFY_PUBLIC_ONLY:-}" &&
+   not_blank "${SPOTIFY_PRIVATE_ONLY:-}"; then
+    die 'ERROR: Cannot set both SPOTIFY_PUBLIC_ONLY and SPOTIFY_PRIVATE_ONLY environment variables - they are mutually exclusive!'
+fi
+
+# because otherwise the Spotify API only returns the public playlists that have been explicitly added to the profile
+#if [ -n "${SPOTIFY_PUBLIC_ONLY:-}" ]; then
+#    export SPOTIFY_PRIVATE=1
+#fi
 
 spotify_user="${1:-${SPOTIFY_USER:-}}"
 
@@ -100,7 +121,12 @@ output(){
     else
         jq "select(.owner.id == \"$spotify_user\")"
     fi |
-    jq -r "[.id, .name] | @tsv"
+    if [ -n "${SPOTIFY_PLAYLIST_SNAPSHOT_ID:-}" ]; then
+        jq -r "[.id, .snapshot_id, .name] | @tsv"
+    else
+        jq -r "[.id, .name] | @tsv"
+    fi |
+    sed 's/[[:space:]]*$//'
 }
 
 spotify_token
@@ -110,4 +136,6 @@ while not_null "$url_path"; do
     #die_if_error_field "$output"
     url_path="$(get_next "$output")"
     output
-done
+done |
+# dedupe by playlist ID in the first column as there are occasional duplicates returned by Spotify API
+awk '!seen[$1]++'

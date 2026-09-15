@@ -26,8 +26,45 @@ srcdir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1090
 . "$srcdir/utils.sh"
 
+is_git_repo(){
+    local target=${1:-.};
+    if [ -d "$target/.git" ]; then
+        return 0;
+    else
+        if [ -f "$target" ] && [ -d "${target%/*}/.git" ]; then
+            return 0;
+        else
+            if [ -d "$target" ]; then
+                pushd "$target" > /dev/null || return 1;
+                if git status >&/dev/null; then
+                    popd >&/dev/null;
+                    return 0;
+                fi;
+            else
+                pushd "$(dirname "$target")" > /dev/null || return 1;
+                if git status >&/dev/null; then
+                    popd >&/dev/null;
+                    return 0;
+                fi;
+            fi;
+            popd >&/dev/null;
+            return 2;
+        fi;
+    fi
+}
+
 git_repo(){
-    git remote -v 2>/dev/null |
+    # give preference for origin, then GitHub, GitLab, Bitbucket, Azure DevOps in that order
+    local remotes
+    remotes="$( git remote -v 2>/dev/null)"
+    {
+        awk 'BEGIN {IGNORECASE=1} $1 ~ /origin/ {print}' <<< "$remotes"
+        awk 'BEGIN {IGNORECASE=1} $1 ~ /github/ {print}' <<< "$remotes"
+        awk 'BEGIN {IGNORECASE=1} $1 ~ /gitlab/ {print}' <<< "$remotes"
+        awk 'BEGIN {IGNORECASE=1} $1 ~ /bitbucket/ {print}' <<< "$remotes"
+        awk 'BEGIN {IGNORECASE=1} $1 ~ /azure/ {print}' <<< "$remotes"
+        echo "$remotes"
+    } |
     awk '{print $2}' |
     head -n1 |
     sed '
@@ -36,6 +73,7 @@ git_repo(){
         s/[^:/]*[:/]//;
         s/\.git$//;
         s|^/||;
+        s|/[^/]*/_git/|/|;
     '
 }
 
@@ -75,6 +113,36 @@ git_relative_dir(){
 is_in_git_repo(){
     #git_root &>/dev/null
     git rev-parse --is-inside-work-tree &>/dev/null
+}
+
+is_file_tracked_in_git(){
+    local filename="$1"
+    git ls-files --error-unmatch -- "$filename" &>/dev/null
+}
+
+is_git_hashref(){
+    local hashref="$1"
+    if is_git_hashref_long "$hashref" ||
+       is_git_hashref_short "$hashref"; then
+        return 0
+    fi
+    return 1
+}
+
+is_git_hashref_long(){
+    local hashref="$1"
+    if [[ "$hashref" =~ ^[0-9a-fA-F]{40}$ ]]; then
+        return 0
+    fi
+    return 1
+}
+
+is_git_hashref_short(){
+    local hashref="$1"
+    if [[ "$hashref" =~ ^[0-9a-fA-F]{7}$ ]]; then
+        return 0
+    fi
+    return 1
 }
 
 git_commit_short_sha(){
@@ -132,6 +200,7 @@ foreachbranch(){
             continue
         fi
         echo "$branch:"
+        # shellcheck disable=SC2294
         if git branch | grep -Fq --color=auto "$branch"; then
             git checkout "$branch"
         else
@@ -169,7 +238,7 @@ git_provider_env(){
     elif [ "$name" = "bitbucket" ]; then
         domain=bitbucket.org
         user="${BITBUCKET_USERNAME:-${BITBUCKET_USER:-}}"
-        token="${BITBUCKET_TOKEN:-${BITBUCKET_PASSWORD:-}}"
+        token="${BITBUCKET_APP_PASSWORD:-${BITBUCKET_TOKEN:-${BITBUCKET_PASSWORD:-}}}"
     elif [ "$name" = "azure" ]; then
         domain=dev.azure.com
         user="${AZURE_DEVOPS_USERNAME:-${AZURE_DEVOPS_USER:-}}"

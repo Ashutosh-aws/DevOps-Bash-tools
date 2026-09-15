@@ -23,7 +23,9 @@ srcdir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # shellcheck disable=SC2034,SC2154
 usage_description="
-Runs git diff and commit with a generic \"updated \$filename\" commit message
+Quickly commits added or updated files to Git, showing a diff and easily enter prompt for each file
+
+Commits with a generic \"added \$filename\" or \"updated \$filename\" commit message
 
 Lazy but awesome for lots of daily quick intermediate commit saves
 
@@ -46,7 +48,7 @@ help_usage "$@"
 resolve_symlinks(){
     local readlink=readlink
     if is_mac; then
-		readlink=greadlink
+        readlink=greadlink
         if ! type -P greadlink >&/dev/null; then
             "$srcdir/../packages/brew_install_package.sh" coreutils  # for greadlink
         fi
@@ -56,41 +58,91 @@ resolve_symlinks(){
     done
 }
 
+# Using this trick to be able to call this script from an IntelliJ hotkey which doesn't allocate /dev/tty
+# which prevents using my simpler trick of reading from /dev/tty to avoid the while loops from eating /dev/stdin
+#
+# duplicate original /dev/stdin file description 0 into file descriptor 3
+# before using while read line loops (for safe filename processing)
+# because those looks consume the /dev/stdin
+exec 3<&0
+
+no_changes="true"
+
 git_diff_commit(){
-	local basedir
+    local basedir
     for filename in "${@:-.}"; do
         if [ "$filename" != . ]; then
+            # TODO: detect link changes and commit them too
             filename="$(resolve_symlinks "$filename")"
         fi
         basedir="$(dirname "$filename")"
         pushd "$basedir" > /dev/null
-        changed_files="$(
-            git status --porcelain -s "${filename##*/}" |
-            grep -e '^M' -e '^.M' |
-            sed 's/^...//' || :
+        git_status_porcelain="$(git status --porcelain -s "${filename##*/}")"
+        added_files="$(
+            grep -e '^?' -e '^A' <<< "$git_status_porcelain" |
+            sed 's/^...//; s/^"//; s/"$//' || :
+            # stripping leading and trailing quotes because git adds them when the filename contains spaces,
+            # but we do line handling on the filename so don't need this and it breaks later processing
+            # as the quotes become taken literally
         )"
-        for changed_filename in $changed_files; do
+        while read -r added_filename; do
+            is_blank "$added_filename" && continue
+            no_changes="false"
+            basename="${added_filename##*/}"
+            git add "$basename"
+            diff="$(git diff --color=always -- "$added_filename"
+                    git diff --cached --color=always -- "$added_filename")"
+            echo "$diff" | less -FR
+            echo
+            # read doesn't print when using a redirect so have to print ourself
+            printf "Hit enter to commit added file '%s' or Control-C to cancel: " "$added_filename"
+            #read -r -p "Hit enter to commit added file '$added_filename' or Control-C to cancel" _ <&3  # read from dup’d stdin, not eaten by the loop
+            # discard the save variable, call it _ to signify this
+            read -r _ <&3  # read from dup’d stdin, not eaten by the loop
+            echo
+            echo "committing added file $added_filename"
+            git commit -m "added $basename" -- "$added_filename"
+        done <<< "$added_files"
+        changed_files="$(
+            grep -e '^M' -e '^.M' <<< "$git_status_porcelain" |
+            sed 's/^...//; s/^"//; s/"$//' || :
+            # stripping leading and trailing quotes because git adds them when the filename contains spaces,
+            # but we do line handling on the filename so don't need this and it breaks later processing
+            # as the quotes become taken literally
+        )"
+        while read -r changed_filename; do
+            is_blank "$changed_filename" && continue
+            no_changes="false"
             basename="${changed_filename##*/}"
-            diff="$(git diff --color=always -- "$changed_filename"
-					git diff --cached --color=always -- "$changed_filename")"
+            diff="$(
+                git diff --color=always -- "$changed_filename"
+                git diff --color=always --cached -- "$changed_filename"
+            )"
             if [ -z "$diff" ]; then
                 continue
             fi
-            echo "$diff" | more -FR
+            echo "$diff" | less -FR
             echo
-			# discard the save variable, call it _ to signify this
-            read -r -p "Hit enter to commit '$changed_filename' or Control-C to cancel" _
+            # read doesn't print when using a redirect so have to print ourself
+            printf "Hit enter to commit updated file '%s' or Control-C to cancel: " "$changed_filename"
+            # read doesn't print when using a redirect
+            #read -r -p "Hit enter to commit updated file '$changed_filename' or Control-C to cancel" _ <&3  # read from dup’d stdin, not eaten by the loop
+            # discard the save variable, call it _ to signify this
+            read -r _ <&3  # read from dup’d stdin, not eaten by the loop
             echo
             git add -- "$changed_filename"
-			echo "committing $changed_filename"
-			git commit -m "updated $basename" -- "$changed_filename"
-        done
+            echo "committing updated file $changed_filename"
+            git commit -m "updated $basename" -- "$changed_filename"
+        done <<< "$changed_files"
         popd >&/dev/null || :
     done
 }
 
 for target in "${@:-.}"; do
-	git_diff_commit "$target"
+    git_diff_commit "$target"
 done
 
+if [ "$no_changes" = "true" ]; then
+    timestamp "No Changes"
+fi
 timestamp "Git Diff Commit completed"

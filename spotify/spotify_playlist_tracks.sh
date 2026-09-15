@@ -70,7 +70,7 @@ playlist_id="$("$srcdir/spotify_playlist_name_to_id.sh" "$playlist_id" "$@")"
 # shellcheck disable=SC2154
 url_path="/v1/playlists/$playlist_id/tracks?limit=100&offset=$offset"
 
-output(){
+print_output(){
     # If you set \$SPOTIFY_PLAYLIST_TRACKS_UNAVAILABLE=1 then will only output tracks that are unavailable (greyed out on Spotify)
     # Can feed this in to spotify_delete_from_playlist.sh to crop them from TODO / Discover Backlog type playlists
     #if [ -n "${SPOTIFY_PLAYLIST_TRACKS_UNAVAILABLE:-}" ]; then
@@ -79,9 +79,17 @@ output(){
     #    jq -r '.items[] | select(.track.uri) | select((.track.available_markets | length) == 0) | select((.track.album.available_markets | length) == 0)' <<< "$output"
     #else
     if not_blank "${SPOTIFY_CSV:-}"; then
-        jq -r '.items[].track | [([.artists[]?.name] | join(", ")), .name] | @csv'
+        jq -r '
+            .items[].track |
+            [ ( [ .artists[]?.name ] | join(", ") ), .name ] |
+            @csv
+        '
     else
-        jq -r '.items[].track | [([.artists[]?.name] | join(", ")), "-", .name] | @tsv'
+        jq -r '
+            .items[].track |
+            [ ( [ .artists[]?.name ] | join(", ") ), "-", .name ] |
+            @tsv
+        '
     fi <<< "$output" |
     tr '\t' ' ' |
     sed '
@@ -95,5 +103,7 @@ while not_null "$url_path"; do
     output="$("$srcdir/spotify_api.sh" "$url_path" "$@")"
     #die_if_error_field "$output"
     url_path="$(get_next "$output")"
-    output
+    print_output
+    # slow down a bit to try to reduce hitting Spotify API rate limits and getting HTTP 429 Too Many Requests on large playlists
+    #sleep 0.1
 done

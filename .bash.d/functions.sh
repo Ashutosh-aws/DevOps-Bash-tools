@@ -62,13 +62,6 @@ new(){
     title "$LAST_TITLE"
 }
 
-idea(){
-    nohup command idea "$@" &
-    # disowns the first backgrounded command instead of the latest command,
-    # so use $! to specify the pid of the latest command in this shell
-    disown $!
-}
-
 # generates bash autocompletion if not available
 # sources bash autocompletion from local standardized path
 autocomplete(){
@@ -96,27 +89,74 @@ pg(){
     grep -v grep
 }
 
-copy_to_clipboard(){
-    if is_mac; then
-        cat | pbcopy
-    elif is_linux; then
-        cat | xclip
-    else
-        echo "ERROR: OS is not Darwin/Linux"
-        return 1
-    fi
+pstg(){
+    # want splitting of options
+    # shellcheck disable=SC2086
+    pstree |
+    grep -5 -i --color=always "$@" |
+    less $LESS
 }
+
+# externalized to copy_to_clipboard.sh script
+#copy_to_clipboard(){
+#    if is_mac; then
+#        cat | pbcopy
+#    elif is_linux; then
+#        cat | xclip
+#    else
+#        echo "ERROR: OS is not Darwin/Linux"
+#        return 1
+#    fi
+#}
 
 unalias clip &>/dev/null || :
 # args are optional
 # shellcheck disable=SC2120
 clip(){
     if [ $# -gt 0 ]; then
-        copy_to_clipboard < "$1"
+        copy_to_clipboard.sh < "$1"
     else
-        copy_to_clipboard
+        copy_to_clipboard.sh
     fi
 }
+
+dle(){
+    if [[ "$PWD" =~ $HOME(/Downloads(/Transmission)?)?$ ]]; then
+        echo "Switching to $HOME/Downloads/YouTube"
+        mkdir -p -v ~/Downloads/YouTube
+        pushd ~/Downloads/YouTube || return 1
+        if [ -f .envrc ]; then
+            eval "$(direnv export bash)"
+        fi
+    fi
+    while true; do
+        if BACKGROUND_VIDEO=1 youtube_download_video.sh "$@"; then
+            # doesn't persist past a pause/unpause,
+            # and this starts playing which we don't want which is why it's backgrounded
+            #osascript -e 'tell application "QuickTime Player" to set rate of document 1 to 2' &&
+            break
+        fi
+        local sleep_secs="$((RANDOM % 300))"
+        echo "Sleeping for $sleep_secs secs before retrying..."
+        sleep "$sleep_secs"
+    done
+    exit
+}
+dlq(){
+    youtube_download_queue_add.sh "$@"
+}
+dlp(){
+    if [[ "$PWD" =~ $HOME(/Downloads(/Transmission)?)?$ ]]; then
+        echo "Switching to $HOME/Downloads/YouTube"
+        mkdir -p -v ~/Downloads/YouTube
+        pushd ~/Downloads/YouTube || return 1
+        if [ -f .envrc ]; then
+            eval "$(direnv export bash)"
+        fi
+    fi
+    youtube_download_queue_process.sh
+}
+alias ytp="cd ~/Downloads/YouTube && ./play.sh"
 
 deccp(){
     # shellcheck disable=SC2119
@@ -173,6 +213,25 @@ typer(){
             type "$x"
         fi
     done
+}
+
+findup(){
+    local arg="$1"
+    current_dir="${PWD:-$(pwd)}"
+    while [ "$current_dir" != "" ]; do
+        if [ -e "$current_dir/$arg" ]; then
+            echo "$current_dir/$arg"
+            return 0
+        fi
+        current_dir="${current_dir%/*}"
+    done
+    echo "Not found in above path: $arg" >&2
+    return 1
+}
+
+cdup(){
+    local arg="$1"
+    cd "$(findup "$arg")" || return 1
 }
 
 lld(){
@@ -381,6 +440,19 @@ f(){
     # times about the same
     #eval find -L . -type f -iname "\*$1\*" $grep
     eval find -L . -type f "$grep"
+}
+
+fll(){
+    local grep=""
+    # shellcheck disable=SC2013
+    for x in "${@//[^A-Za-z0-9_-]/.}"; do
+        if [[ "$x" =~ [a-zA-Z0-9._-] ]]; then
+            grep="$grep | grep -i --color=auto $x"
+        fi
+    done
+    # times about the same
+    #eval find -L . -type f -iname "\*$1\*" $grep
+    eval find -L . -type f -exec ls -lh {} \\\; "$grep"
 }
 
 dgrep(){
